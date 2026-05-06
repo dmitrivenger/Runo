@@ -34,34 +34,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.dmitrivenger.runo.RunoApplication
+import com.dmitrivenger.runo.domain.model.LatLng
 import com.dmitrivenger.runo.domain.model.Run
+import com.dmitrivenger.runo.ui.components.MapLibreMapView
 import com.dmitrivenger.runo.ui.components.MetricCard
 import com.dmitrivenger.runo.ui.components.PaceChart
-import com.dmitrivenger.runo.ui.theme.DarkGreen
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.JointType
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Polyline
-import com.google.maps.android.compose.rememberCameraPositionState
+import com.dmitrivenger.runo.ui.components.buildRouteGeoJson
+import com.dmitrivenger.runo.ui.components.toMapLibre
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLngBounds
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.sources.GeoJsonSource
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RunDetailScreen(
-    runId: Long,
-    app: RunoApplication,
-    onBack: () -> Unit,
-) {
+fun RunDetailScreen(runId: Long, app: RunoApplication, onBack: () -> Unit) {
     var run by remember { mutableStateOf<Run?>(null) }
     LaunchedEffect(runId) { run = app.runRepository.getRunById(runId) }
-
     val r = run ?: return
+
     val date = SimpleDateFormat("EEEE, MMMM d, yyyy · h:mm a", Locale.getDefault())
         .format(Date(r.startTime))
 
@@ -74,9 +70,7 @@ fun RunDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -111,9 +105,7 @@ fun RunDetailScreen(
                         color = MaterialTheme.colorScheme.onBackground)
                     Spacer(Modifier.height(8.dp))
                     DetailRouteMap(r.routePoints, modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(4f / 3f)
-                        .clip(RoundedCornerShape(16.dp)))
+                        .fillMaxWidth().aspectRatio(4f / 3f).clip(RoundedCornerShape(16.dp)))
                 }
             }
 
@@ -129,18 +121,14 @@ fun RunDetailScreen(
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .padding(16.dp)
                     ) {
-                        PaceChart(sorted.map { it.value },
-                            lineColor = MaterialTheme.colorScheme.secondary)
+                        PaceChart(sorted.map { it.value }, lineColor = MaterialTheme.colorScheme.secondary)
                     }
                     Spacer(Modifier.height(8.dp))
                     sorted.forEach { (km, pace) ->
-                        val m = (pace / 60).toInt()
-                        val s = (pace % 60).toInt()
-                        Row(Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("KM $km", style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface)
-                            Text("%d:%02d /km".format(m, s),
+                            Text("%d:%02d /km".format((pace / 60).toInt(), (pace % 60).toInt()),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.secondary)
                         }
@@ -154,22 +142,22 @@ fun RunDetailScreen(
 
 @Composable
 private fun DetailRouteMap(points: List<LatLng>, modifier: Modifier = Modifier) {
-    val bounds = remember(points) {
-        val b = LatLngBounds.Builder()
-        points.forEach { b.include(it) }
-        b.build()
-    }
-    val cam = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(bounds.center, 14f)
-    }
-    GoogleMap(
+    MapLibreMapView(
         modifier = modifier,
-        cameraPositionState = cam,
-        uiSettings = MapUiSettings(scrollGesturesEnabled = true, zoomControlsEnabled = false),
-        properties = MapProperties(isMyLocationEnabled = false),
-    ) {
-        Polyline(points = points,
-            color = DarkGreen,
-            width = 10f, jointType = JointType.ROUND)
-    }
+        onMapReady = { map, style ->
+            val source = GeoJsonSource("route", buildRouteGeoJson(points))
+            style.addSource(source)
+            style.addLayer(
+                LineLayer("route-layer", "route").withProperties(
+                    PropertyFactory.lineColor("#1DB954"),
+                    PropertyFactory.lineWidth(8f),
+                    PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                    PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                )
+            )
+            val boundsBuilder = LatLngBounds.Builder()
+            points.forEach { boundsBuilder.include(it.toMapLibre()) }
+            map.moveCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 64))
+        }
+    )
 }
