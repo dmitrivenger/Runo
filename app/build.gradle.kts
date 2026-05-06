@@ -17,9 +17,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val mapsApiKey = (project.findProperty("MAPS_API_KEY") as? String) ?: ""
-        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
-    }
+        }
 
     buildTypes {
         release {
@@ -55,7 +53,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.maps.compose)
+    implementation(libs.maplibre.android.sdk)
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.splashscreen)

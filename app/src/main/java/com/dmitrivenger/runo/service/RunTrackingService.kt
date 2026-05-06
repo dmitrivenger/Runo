@@ -5,18 +5,17 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.location.Location
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.dmitrivenger.runo.MainActivity
 import com.dmitrivenger.runo.R
+import com.dmitrivenger.runo.domain.model.LatLng
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,12 +36,10 @@ class RunTrackingService : Service() {
     }
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private var lastLocation: Location? = null
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             result.lastLocation?.let { location ->
-                lastLocation = location
                 _locationFlow.value = LatLng(location.latitude, location.longitude)
             }
         }
@@ -66,24 +63,22 @@ class RunTrackingService : Service() {
 
     private fun startTracking() {
         _isTracking.value = true
-        val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, notificationIntent,
+            this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.notification_title))
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .build()
-
-        startForeground(NOTIFICATION_ID, notification)
-
+        startForeground(
+            NOTIFICATION_ID,
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.notification_title))
+                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .build()
+        )
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
             .setMinUpdateIntervalMillis(1000L)
             .build()
-
         try {
             fusedLocationClient.requestLocationUpdates(request, locationCallback, mainLooper)
         } catch (e: SecurityException) {
@@ -109,10 +104,7 @@ class RunTrackingService : Service() {
             CHANNEL_ID,
             getString(R.string.channel_name),
             NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = getString(R.string.channel_description)
-        }
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        ).apply { description = getString(R.string.channel_description) }
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 }

@@ -2,8 +2,8 @@ package com.dmitrivenger.runo.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.dmitrivenger.runo.domain.model.LatLng
 import com.dmitrivenger.runo.domain.model.Run
-import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 

@@ -39,16 +39,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.dmitrivenger.runo.domain.model.UserProfile
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.JointType
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Polyline
-import com.google.maps.android.compose.rememberCameraPositionState
+import com.dmitrivenger.runo.ui.components.MapLibreMapView
+import com.dmitrivenger.runo.ui.components.buildRouteGeoJson
+import com.dmitrivenger.runo.ui.components.toMapLibre
 import kotlinx.coroutines.launch
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.sources.GeoJsonSource
+
+private const val ROUTE_SOURCE_ID = "route-source"
+private const val ROUTE_LAYER_ID = "route-layer"
+private const val ROUTE_COLOR = "#1DB954"
 
 @Composable
 fun ActiveRunScreen(
@@ -60,33 +65,27 @@ fun ActiveRunScreen(
     val scope = rememberCoroutineScope()
     var showEndDialog by remember { mutableStateOf(false) }
 
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(51.5, -0.1), 15f)
-    }
+    var mapController by remember { mutableStateOf<MapLibreMap?>(null) }
+    var routeSource by remember { mutableStateOf<GeoJsonSource?>(null) }
 
-    val lastPoint = state.routePoints.lastOrNull()
-    LaunchedEffect(lastPoint) {
-        lastPoint?.let {
-            cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(it, 16f))
+    LaunchedEffect(routeSource, state.routePoints) {
+        val src = routeSource ?: return@LaunchedEffect
+        src.setGeoJson(buildRouteGeoJson(state.routePoints))
+        state.routePoints.lastOrNull()?.let { last ->
+            mapController?.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(last.toMapLibre(), 16.0), 800
+            )
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        GoogleMap(
+        MapLibreMapView(
             modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = false),
-            uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
-        ) {
-            if (state.routePoints.size >= 2) {
-                Polyline(
-                    points = state.routePoints,
-                    color = MaterialTheme.colorScheme.primary,
-                    width = 12f,
-                    jointType = JointType.ROUND,
-                )
+            onMapReady = { map, style ->
+                setupRouteLayer(style) { src -> routeSource = src }
+                mapController = map
             }
-        }
+        )
 
         Column(
             modifier = Modifier
@@ -100,25 +99,11 @@ fun ActiveRunScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                MetricDisplay(
-                    label = "DISTANCE",
-                    value = "%.2f".format(state.distanceMeters / 1000f),
-                    unit = "km",
-                )
-                MetricDisplay(
-                    label = "PACE",
-                    value = formatPace(state.currentPaceSecondsPerKm),
-                    unit = "/km",
-                )
-                MetricDisplay(
-                    label = "TIME",
-                    value = formatTime(state.elapsedSeconds),
-                    unit = "",
-                )
+                MetricDisplay("DISTANCE", "%.2f".format(state.distanceMeters / 1000f), "km")
+                MetricDisplay("PACE", formatPace(state.currentPaceSecondsPerKm), "/km")
+                MetricDisplay("TIME", formatTime(state.elapsedSeconds), "")
             }
-
             Spacer(Modifier.height(24.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -126,9 +111,7 @@ fun ActiveRunScreen(
             ) {
                 IconButton(
                     onClick = { showEndDialog = true },
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
+                    modifier = Modifier.size(56.dp).clip(CircleShape)
                         .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)),
                 ) {
                     Icon(Icons.Default.Stop, "End Run",
@@ -137,9 +120,7 @@ fun ActiveRunScreen(
                 Spacer(Modifier.width(32.dp))
                 IconButton(
                     onClick = { viewModel.togglePause() },
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape)
+                    modifier = Modifier.size(72.dp).clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary),
                 ) {
                     Icon(
@@ -150,15 +131,12 @@ fun ActiveRunScreen(
                     )
                 }
             }
-
             Spacer(Modifier.height(8.dp))
         }
 
         if (state.isPaused) {
             Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 48.dp)
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 48.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
                     .padding(horizontal = 20.dp, vertical = 8.dp),
@@ -193,6 +171,20 @@ fun ActiveRunScreen(
     }
 }
 
+private fun setupRouteLayer(style: Style, onSourceReady: (GeoJsonSource) -> Unit) {
+    val source = GeoJsonSource(ROUTE_SOURCE_ID, """{"type":"FeatureCollection","features":[]}""")
+    style.addSource(source)
+    style.addLayer(
+        LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID).withProperties(
+            PropertyFactory.lineColor(ROUTE_COLOR),
+            PropertyFactory.lineWidth(10f),
+            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+        )
+    )
+    onSourceReady(source)
+}
+
 @Composable
 private fun MetricDisplay(label: String, value: String, unit: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -209,14 +201,10 @@ private fun MetricDisplay(label: String, value: String, unit: String) {
 
 private fun formatPace(paceSeconds: Float): String {
     if (paceSeconds <= 0f) return "--:--"
-    val m = (paceSeconds / 60).toInt()
-    val s = (paceSeconds % 60).toInt()
-    return "%d:%02d".format(m, s)
+    return "%d:%02d".format((paceSeconds / 60).toInt(), (paceSeconds % 60).toInt())
 }
 
 private fun formatTime(seconds: Long): String {
-    val h = seconds / 3600
-    val m = (seconds % 3600) / 60
-    val s = seconds % 60
+    val h = seconds / 3600; val m = (seconds % 3600) / 60; val s = seconds % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }

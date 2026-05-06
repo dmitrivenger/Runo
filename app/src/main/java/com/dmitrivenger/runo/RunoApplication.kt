@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.dmitrivenger.runo.data.local.RunDatabase
 import com.dmitrivenger.runo.data.preferences.UserPreferences
 import com.dmitrivenger.runo.data.repository.RunRepository
+import org.maplibre.android.MapLibre
 
 class RunoApplication : Application() {
 
@@ -15,4 +16,9 @@ class RunoApplication : Application() {
     val userPreferences: UserPreferences by lazy { UserPreferences(this) }
 
     val runRepository: RunRepository by lazy { RunRepository(database.runDao()) }
+
+    override fun onCreate() {
+        super.onCreate()
+        MapLibre.getInstance(this)
+    }
 }

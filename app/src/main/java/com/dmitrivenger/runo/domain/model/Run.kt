@@ -1,7 +1,5 @@
 package com.dmitrivenger.runo.domain.model
 
-import com.google.android.gms.maps.model.LatLng
-
 data class Run(
     val id: Long = 0,
     val startTime: Long = 0L,
