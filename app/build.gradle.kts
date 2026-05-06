@@ -56,7 +56,7 @@ dependencies {
     implementation(libs.maplibre.android.sdk)
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.splashscreen)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.gson)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
