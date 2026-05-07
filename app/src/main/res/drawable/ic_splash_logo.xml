@@ -5,6 +5,11 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- Deep-green rounded square — matches the Compose splash logo box -->
+    <path
+        android:fillColor="#0F3D2E"
+        android:pathData="M34,14 L74,14 Q94,14 94,34 L94,74 Q94,94 74,94 L34,94 Q14,94 14,74 L14,34 Q14,14 34,14 Z" />
+
     <!-- R lettermark: staff + bowl (evenOdd punches the counter hole) -->
     <path
         android:fillColor="#FFFFFF"

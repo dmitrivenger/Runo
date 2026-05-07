@@ -29,8 +29,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.dmitrivenger.runo.ui.theme.Dark_Background
-import com.dmitrivenger.runo.ui.theme.Dark_OnSurfaceMuted
+import com.dmitrivenger.runo.ui.theme.Light_MutedGray
 import kotlinx.coroutines.delay
 
 // Custom easing — gentle overshoot on logo entrance
@@ -70,7 +69,7 @@ fun SplashScreen(onComplete: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Dark_Background),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -113,7 +112,7 @@ fun SplashScreen(onComplete: () -> Unit) {
             Text(
                 text = "Every step counts\ntoward something bigger.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = Dark_OnSurfaceMuted,
+                color = Light_MutedGray,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .alpha(textAlpha)
