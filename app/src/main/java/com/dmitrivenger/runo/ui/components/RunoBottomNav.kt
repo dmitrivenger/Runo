@@ -57,7 +57,7 @@ fun RunoBottomNav(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 24.dp, bottom = 16.dp),
+            .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
     ) {
         // ── Pill bar ─────────────────────────────────────────────────────────
         Surface(
