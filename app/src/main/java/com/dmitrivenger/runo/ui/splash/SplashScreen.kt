@@ -3,13 +3,17 @@ package com.dmitrivenger.runo.ui.splash
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,13 +30,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dmitrivenger.runo.R
+import com.dmitrivenger.runo.ui.theme.Brand_DeepGreen
 import com.dmitrivenger.runo.ui.theme.Light_MutedGray
 import kotlinx.coroutines.delay
 
-// Custom easing — gentle overshoot on logo entrance
 private val EaseOutBack = Easing { t ->
     val c1 = 1.70158f
     val c3 = c1 + 1f
@@ -65,6 +71,11 @@ fun SplashScreen(onComplete: () -> Unit) {
         animationSpec = tween(durationMillis = 600, delayMillis = 300),
         label = "textAlpha",
     )
+    val loadingProgress by animateFloatAsState(
+        targetValue = if (triggered) 1f else 0f,
+        animationSpec = tween(durationMillis = 1800),
+        label = "loadingProgress",
+    )
 
     Box(
         modifier = Modifier
@@ -76,29 +87,18 @@ fun SplashScreen(onComplete: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            // Logo mark — "R" in a rounded green box
-            Box(
+            // R glyph with motion lines — no green tile background
+            Image(
+                painter = painterResource(R.drawable.runo_logomark),
+                contentDescription = null,
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(108.dp)
                     .scale(logoScale)
-                    .alpha(logoAlpha)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "R",
-                    style = MaterialTheme.typography.displaySmall.copy(
-                        fontFeatureSettings = "tnum",
-                        letterSpacing = (-1).sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
+                    .alpha(logoAlpha),
+            )
 
             Spacer(Modifier.height(20.dp))
 
-            // Wordmark
             Text(
                 text = "RUNO",
                 style = MaterialTheme.typography.displayMedium.copy(letterSpacing = 8.sp),
@@ -108,7 +108,6 @@ fun SplashScreen(onComplete: () -> Unit) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Tagline
             Text(
                 text = "Every step counts\ntoward something bigger.",
                 style = MaterialTheme.typography.bodyLarge,
@@ -118,6 +117,30 @@ fun SplashScreen(onComplete: () -> Unit) {
                     .alpha(textAlpha)
                     .padding(horizontal = 48.dp),
             )
+        }
+
+        // Loading bar — anchored at bottom
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 48.dp, vertical = 48.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Brand_DeepGreen.copy(alpha = 0.15f)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(loadingProgress)
+                        .fillMaxHeight()
+                        .background(Brand_DeepGreen),
+                )
+            }
         }
     }
 }
