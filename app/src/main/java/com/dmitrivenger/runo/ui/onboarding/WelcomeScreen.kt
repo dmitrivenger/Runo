@@ -77,7 +77,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(top = 72.dp, horizontal = 32.dp)
+                .padding(start = 32.dp, top = 72.dp, end = 32.dp, bottom = 0.dp)
                 .alpha(contentAlpha),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
