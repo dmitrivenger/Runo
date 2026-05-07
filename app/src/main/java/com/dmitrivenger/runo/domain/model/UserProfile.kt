@@ -8,6 +8,8 @@ data class UserProfile(
     val goal: RunGoal = RunGoal.STAY_ACTIVE,
     val darkMode: Boolean = true,
     val voiceFeedbackEnabled: Boolean = true,
+    val useMetricUnits: Boolean = true,
+    val voiceIntervalKm: Int = 1,
 )
 
 enum class RunGoal(val label: String) {

@@ -27,6 +27,8 @@ class UserPreferences(private val context: Context) {
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val DARK_MODE = booleanPreferencesKey("dark_mode")
         val VOICE_FEEDBACK = booleanPreferencesKey("voice_feedback")
+        val USE_METRIC = booleanPreferencesKey("use_metric")
+        val VOICE_INTERVAL_KM = intPreferencesKey("voice_interval_km")
     }
 
     val userProfile: Flow<UserProfile> = context.dataStore.data.map { prefs ->
@@ -38,6 +40,8 @@ class UserPreferences(private val context: Context) {
             goal = RunGoal.entries.find { it.name == prefs[Keys.GOAL] } ?: RunGoal.STAY_ACTIVE,
             darkMode = prefs[Keys.DARK_MODE] ?: true,
             voiceFeedbackEnabled = prefs[Keys.VOICE_FEEDBACK] ?: true,
+            useMetricUnits = prefs[Keys.USE_METRIC] ?: true,
+            voiceIntervalKm = prefs[Keys.VOICE_INTERVAL_KM] ?: 1,
         )
     }
 
@@ -54,6 +58,8 @@ class UserPreferences(private val context: Context) {
             prefs[Keys.GOAL] = profile.goal.name
             prefs[Keys.DARK_MODE] = profile.darkMode
             prefs[Keys.VOICE_FEEDBACK] = profile.voiceFeedbackEnabled
+            prefs[Keys.USE_METRIC] = profile.useMetricUnits
+            prefs[Keys.VOICE_INTERVAL_KM] = profile.voiceIntervalKm
         }
     }
 
