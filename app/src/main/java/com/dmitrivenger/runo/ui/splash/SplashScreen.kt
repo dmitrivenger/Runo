@@ -3,20 +3,20 @@ package com.dmitrivenger.runo.ui.splash
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,11 +73,6 @@ fun SplashScreen(onComplete: () -> Unit) {
         animationSpec = tween(durationMillis = 600, delayMillis = 300),
         label = "textAlpha",
     )
-    val loadingProgress by animateFloatAsState(
-        targetValue = if (triggered) 1f else 0f,
-        animationSpec = tween(durationMillis = 1800),
-        label = "loadingProgress",
-    )
 
     Box(
         modifier = Modifier
@@ -83,22 +80,45 @@ fun SplashScreen(onComplete: () -> Unit) {
             .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center,
     ) {
+        // ── Centre content ────────────────────────────────────────────────────
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            // R glyph with motion lines — no green tile background
-            Image(
-                painter = painterResource(R.drawable.runo_logomark),
-                contentDescription = null,
+            // Logo mark + warm ambient glow
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(108.dp)
+                    .size(200.dp)
                     .scale(logoScale)
                     .alpha(logoAlpha),
-            )
+            ) {
+                // Soft warm glow ring (cream-gold, matches reference)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFFDAB96A).copy(alpha = 0.32f),
+                                    Color.Transparent,
+                                )
+                            ),
+                            shape = CircleShape,
+                        )
+                )
+                // R glyph + motion lines (deep green, no background tile)
+                Icon(
+                    painter = painterResource(R.drawable.runo_logomark),
+                    contentDescription = null,
+                    tint = Brand_DeepGreen,
+                    modifier = Modifier.size(108.dp),
+                )
+            }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
 
+            // "RUNO" wordmark
             Text(
                 text = "RUNO",
                 style = MaterialTheme.typography.displayMedium.copy(letterSpacing = 8.sp),
@@ -106,10 +126,11 @@ fun SplashScreen(onComplete: () -> Unit) {
                 modifier = Modifier.alpha(logoAlpha),
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
+            // Tagline
             Text(
-                text = "Every step counts\ntoward something bigger.",
+                text = "Every step counts toward\nsomething bigger",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Light_MutedGray,
                 textAlign = TextAlign.Center,
@@ -119,26 +140,68 @@ fun SplashScreen(onComplete: () -> Unit) {
             )
         }
 
-        // Loading bar — anchored at bottom
+        // ── Bottom: — • — divider + three loading dots ────────────────────────
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 48.dp, vertical = 48.dp),
+                .padding(bottom = 56.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Box(
+            // Decorative — • — rule
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Brand_DeepGreen.copy(alpha = 0.15f)),
+                    .padding(horizontal = 96.dp)
+                    .alpha(textAlpha),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth(loadingProgress)
-                        .fillMaxHeight()
-                        .background(Brand_DeepGreen),
+                    Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(Brand_DeepGreen.copy(alpha = 0.25f))
+                )
+                Box(
+                    Modifier
+                        .padding(horizontal = 10.dp)
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(Brand_DeepGreen.copy(alpha = 0.50f))
+                )
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(Brand_DeepGreen.copy(alpha = 0.25f))
+                )
+            }
+
+            // Three dots
+            Row(
+                modifier = Modifier.alpha(textAlpha),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(Brand_DeepGreen)
+                )
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Brand_DeepGreen.copy(alpha = 0.45f))
+                )
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Brand_DeepGreen.copy(alpha = 0.45f))
                 )
             }
         }
