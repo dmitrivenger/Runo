@@ -1,8 +1,11 @@
 package com.dmitrivenger.runo.ui.run
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -28,6 +32,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -168,49 +173,101 @@ fun ActiveRunScreen(
                 color = MaterialTheme.colorScheme.surfaceVariant,
             )
 
-            // Controls
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 40.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Stop button
-                IconButton(
-                    onClick = { showEndDialog = true },
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
-                ) {
-                    Icon(
-                        Icons.Default.Stop,
-                        contentDescription = "End run",
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(26.dp),
-                    )
+            // Controls — animate between running and paused layouts
+            AnimatedContent(
+                targetState = state.isPaused,
+                transitionSpec = {
+                    fadeIn(tween(200)) togetherWith fadeOut(tween(200))
+                },
+                label = "controls",
+            ) { isPaused ->
+                if (isPaused) {
+                    // Paused layout: Resume (primary) + End Run (destructive outline)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Button(
+                            onClick = { viewModel.togglePause() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Resume", style = MaterialTheme.typography.titleMedium)
+                        }
+                        OutlinedButton(
+                            onClick = { showEndDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .border(
+                                    width = 1.5.dp,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    shape = RoundedCornerShape(16.dp),
+                                ),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.tertiary,
+                            ),
+                            border = null,
+                        ) {
+                            Text("End Run", style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                } else {
+                    // Running layout: stop (left) + pause (centre)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 40.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(
+                            onClick = { showEndDialog = true },
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
+                        ) {
+                            Icon(
+                                Icons.Default.Stop,
+                                contentDescription = "End run",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(26.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(36.dp))
+                        IconButton(
+                            onClick = { viewModel.togglePause() },
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                        ) {
+                            Icon(
+                                Icons.Default.Pause,
+                                contentDescription = "Pause",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(36.dp + 56.dp))
+                    }
                 }
-
-                Spacer(Modifier.width(36.dp))
-
-                // Pause / Resume button
-                IconButton(
-                    onClick = { viewModel.togglePause() },
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                ) {
-                    Icon(
-                        imageVector = if (state.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                        contentDescription = if (state.isPaused) "Resume" else "Pause",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(36.dp),
-                    )
-                }
-
-                Spacer(Modifier.width(36.dp + 56.dp)) // mirror stop button for centering
             }
         }
     }
