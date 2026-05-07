@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Placeholder for the painterly mountain illustration.
+    Replace by dropping the real asset at:
+        app/src/main/res/drawable-nodpi/welcome_mountains.png
+    Android will automatically prefer the PNG over this XML.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="400dp"
+    android:height="400dp"
+    android:viewportWidth="400"
+    android:viewportHeight="400">
+    <path android:fillColor="#F5EFD8" android:pathData="M0,0 H400 V400 H0 Z" />
+</vector>

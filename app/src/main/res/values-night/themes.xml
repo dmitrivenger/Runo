@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Force cream background even when the system is in dark mode.
+     Runo handles its own dark/light theming entirely inside Compose. -->
 <resources>
-    <!-- Cream window background prevents any black flash before Compose paints -->
     <style name="Theme.Runo" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/runo_cream</item>
     </style>

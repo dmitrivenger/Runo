@@ -2,10 +2,12 @@ package com.dmitrivenger.runo.ui.onboarding
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,10 +34,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dmitrivenger.runo.R
 import com.dmitrivenger.runo.ui.theme.Brand_DeepGreen
 import com.dmitrivenger.runo.ui.theme.Light_BackgroundCream
 import kotlinx.coroutines.delay
@@ -54,23 +59,27 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
         label = "contentAlpha",
     )
 
-    // Illustration:
-    // Place the painterly mountain asset at:
-    //   app/src/main/res/drawable-nodpi/welcome_background.png
-    // Then add inside this Box (before the text column):
-    //   Image(
-    //       painter = painterResource(R.drawable.welcome_background),
-    //       contentDescription = null,
-    //       contentScale = ContentScale.Crop,
-    //       modifier = Modifier.fillMaxSize(),
-    //   )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Light_BackgroundCream),
     ) {
-        // Text content — upper portion, leaves bottom ~55% clear for illustration
+        // Mountain illustration — bottom 60% of screen.
+        // Currently shows cream placeholder (welcome_mountains.xml).
+        // Drop the real asset at:
+        //   app/src/main/res/drawable-nodpi/welcome_mountains.png
+        // Android will automatically prefer the PNG over the placeholder XML.
+        Image(
+            painter = painterResource(R.drawable.welcome_mountains),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(0.60f),
+        )
+
+        // Text content — upper portion
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)

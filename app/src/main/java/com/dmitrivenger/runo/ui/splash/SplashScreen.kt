@@ -109,7 +109,7 @@ fun SplashScreen(onComplete: () -> Unit) {
                 )
                 // R glyph + motion lines (deep green, no background tile)
                 Icon(
-                    painter = painterResource(R.drawable.runo_logomark),
+                    painter = painterResource(R.drawable.runo_logo),
                     contentDescription = null,
                     tint = Brand_DeepGreen,
                     modifier = Modifier.size(108.dp),

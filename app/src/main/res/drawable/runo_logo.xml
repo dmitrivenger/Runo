@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Runo standalone logo mark — deep green R glyph + three motion dashes,
+    transparent background. 108×108 viewport.
+    Motion lines occupy x=0-22 (left space); R staff begins at x=26.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Three horizontal speed dashes, centred on the R bowl (bowl spans y=16–56) -->
+    <path android:fillColor="#0F3D2E" android:pathData="M2,24 H20 V28 H2 Z" />
+    <path android:fillColor="#0F3D2E" android:pathData="M0,33 H22 V37 H0 Z" />
+    <path android:fillColor="#0F3D2E" android:pathData="M2,42 H20 V46 H2 Z" />
+
+    <!-- R: outer staff + bowl, evenOdd punches the counter hole -->
+    <path
+        android:fillColor="#0F3D2E"
+        android:fillType="evenOdd"
+        android:pathData="
+            M26,16 H70 C91,16 91,56 70,56 H40 V95 H26 Z
+            M45,26 H65 C80,26 80,47 65,47 H45 Z" />
+
+    <!-- R diagonal leg -->
+    <path android:fillColor="#0F3D2E" android:pathData="M60,56 L89,95 H76 L47,56 Z" />
+
+</vector>
