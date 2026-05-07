@@ -1,5 +1,8 @@
 package com.dmitrivenger.runo.ui.run
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +24,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dmitrivenger.runo.domain.model.UserProfile
 import com.dmitrivenger.runo.ui.components.MapLibreMapView
@@ -51,9 +57,10 @@ import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.sources.GeoJsonSource
 
-private const val ROUTE_SOURCE_ID = "route-source"
-private const val ROUTE_LAYER_ID = "route-layer"
-private const val ROUTE_COLOR = "#1DB954"
+private const val ROUTE_SOURCE_ID  = "route-source"
+private const val ROUTE_LAYER_GLOW = "route-layer-glow"
+private const val ROUTE_LAYER_LINE = "route-layer-line"
+private const val BRAND_GREEN      = "#22C55E"
 
 @Composable
 fun ActiveRunScreen(
@@ -79,6 +86,7 @@ fun ActiveRunScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // ── Full-screen map ───────────────────────────────────────────────────
         MapLibreMapView(
             modifier = Modifier.fillMaxSize(),
             onMapReady = { map, style ->
@@ -87,40 +95,111 @@ fun ActiveRunScreen(
             }
         )
 
+        // ── PAUSED badge ──────────────────────────────────────────────────────
+        AnimatedVisibility(
+            visible = state.isPaused,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 52.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xFFEF4444).copy(alpha = 0.92f))
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    text = "PAUSED",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White,
+                )
+            }
+        }
+
+        // ── Bottom sheet ──────────────────────────────────────────────────────
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
-                .padding(24.dp),
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
+                .padding(bottom = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // Drag handle
+            Box(
+                modifier = Modifier
+                    .padding(top = 12.dp, bottom = 20.dp)
+                    .size(width = 36.dp, height = 4.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
+            )
+
+            // Metrics row
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                MetricDisplay("DISTANCE", "%.2f".format(state.distanceMeters / 1000f), "km")
-                MetricDisplay("PACE", formatPace(state.currentPaceSecondsPerKm), "/km")
-                MetricDisplay("TIME", formatTime(state.elapsedSeconds), "")
+                RunMetric(
+                    label = "DISTANCE",
+                    value = "%.2f".format(state.distanceMeters / 1000f),
+                    unit = "km",
+                )
+                VerticalMetricDivider()
+                RunMetric(
+                    label = "PACE",
+                    value = formatPace(state.currentPaceSecondsPerKm),
+                    unit = "/km",
+                )
+                VerticalMetricDivider()
+                RunMetric(
+                    label = "TIME",
+                    value = formatTime(state.elapsedSeconds),
+                    unit = "",
+                )
             }
-            Spacer(Modifier.height(24.dp))
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+            )
+
+            // Controls
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 40.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Stop button
                 IconButton(
                     onClick = { showEndDialog = true },
-                    modifier = Modifier.size(56.dp).clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
                 ) {
-                    Icon(Icons.Default.Stop, "End Run",
-                        tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(28.dp))
+                    Icon(
+                        Icons.Default.Stop,
+                        contentDescription = "End run",
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(26.dp),
+                    )
                 }
-                Spacer(Modifier.width(32.dp))
+
+                Spacer(Modifier.width(36.dp))
+
+                // Pause / Resume button
                 IconButton(
                     onClick = { viewModel.togglePause() },
-                    modifier = Modifier.size(72.dp).clip(CircleShape)
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary),
                 ) {
                     Icon(
@@ -130,19 +209,8 @@ fun ActiveRunScreen(
                         modifier = Modifier.size(36.dp),
                     )
                 }
-            }
-            Spacer(Modifier.height(8.dp))
-        }
 
-        if (state.isPaused) {
-            Box(
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-            ) {
-                Text("PAUSED", style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.tertiary)
+                Spacer(Modifier.width(36.dp + 56.dp)) // mirror stop button for centering
             }
         }
     }
@@ -161,12 +229,14 @@ fun ActiveRunScreen(
                             onRunFinished(id)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                    ),
                 ) { Text("End Run") }
             },
             dismissButton = {
                 TextButton(onClick = { showEndDialog = false }) { Text("Keep going") }
-            }
+            },
         )
     }
 }
@@ -174,29 +244,62 @@ fun ActiveRunScreen(
 private fun setupRouteLayer(style: Style, onSourceReady: (GeoJsonSource) -> Unit) {
     val source = GeoJsonSource(ROUTE_SOURCE_ID, """{"type":"FeatureCollection","features":[]}""")
     style.addSource(source)
+
+    // Outer glow — wide, semi-transparent
     style.addLayer(
-        LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(ROUTE_COLOR),
-            PropertyFactory.lineWidth(10f),
+        LineLayer(ROUTE_LAYER_GLOW, ROUTE_SOURCE_ID).withProperties(
+            PropertyFactory.lineColor(BRAND_GREEN),
+            PropertyFactory.lineWidth(18f),
+            PropertyFactory.lineOpacity(0.25f),
             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
         )
     )
+
+    // Inner line — solid
+    style.addLayer(
+        LineLayer(ROUTE_LAYER_LINE, ROUTE_SOURCE_ID).withProperties(
+            PropertyFactory.lineColor(BRAND_GREEN),
+            PropertyFactory.lineWidth(6f),
+            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+        )
+    )
+
     onSourceReady(source)
 }
 
 @Composable
-private fun MetricDisplay(label: String, value: String, unit: String) {
+private fun RunMetric(label: String, value: String, unit: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.onSurface)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.displaySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
         if (unit.isNotEmpty()) {
-            Text(unit, style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = unit,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
+}
+
+@Composable
+private fun VerticalMetricDivider() {
+    Box(
+        modifier = Modifier
+            .size(width = 1.dp, height = 48.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    )
 }
 
 private fun formatPace(paceSeconds: Float): String {
@@ -205,6 +308,8 @@ private fun formatPace(paceSeconds: Float): String {
 }
 
 private fun formatTime(seconds: Long): String {
-    val h = seconds / 3600; val m = (seconds % 3600) / 60; val s = seconds % 60
+    val h = seconds / 3600
+    val m = (seconds % 3600) / 60
+    val s = seconds % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
