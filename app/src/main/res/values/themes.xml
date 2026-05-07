@@ -3,7 +3,7 @@
     <style name="Theme.Runo" parent="android:Theme.Material.Light.NoActionBar" />
     <style name="Theme.Runo.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/runo_cream</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_runo_icon</item>
         <item name="postSplashScreenTheme">@style/Theme.Runo</item>
     </style>
 </resources>
