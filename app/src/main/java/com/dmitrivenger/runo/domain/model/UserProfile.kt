@@ -6,7 +6,7 @@ data class UserProfile(
     val heightCm: Float = 0f,
     val weightKg: Float = 0f,
     val goal: RunGoal = RunGoal.STAY_ACTIVE,
-    val darkMode: Boolean = true,
+    val darkMode: Boolean = false,
     val voiceFeedbackEnabled: Boolean = true,
     val useMetricUnits: Boolean = true,
     val voiceIntervalKm: Int = 1,
