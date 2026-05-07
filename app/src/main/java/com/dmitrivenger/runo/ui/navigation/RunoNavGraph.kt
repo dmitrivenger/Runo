@@ -14,9 +14,9 @@ import com.dmitrivenger.runo.ui.analytics.AnalyticsScreen
 import com.dmitrivenger.runo.ui.analytics.AnalyticsViewModel
 import com.dmitrivenger.runo.ui.analytics.AnalyticsViewModelFactory
 import com.dmitrivenger.runo.ui.history.RunDetailScreen
-import com.dmitrivenger.runo.ui.home.HomeScreen
 import com.dmitrivenger.runo.ui.home.HomeViewModel
 import com.dmitrivenger.runo.ui.home.HomeViewModelFactory
+import com.dmitrivenger.runo.ui.home.MainShell
 import com.dmitrivenger.runo.ui.onboarding.OnboardingScreen
 import com.dmitrivenger.runo.ui.onboarding.WelcomeScreen
 import com.dmitrivenger.runo.ui.run.ActiveRunScreen
@@ -78,15 +78,18 @@ fun RunoNavGraph(app: RunoApplication) {
         }
 
         composable(Screen.Home.route) {
-            val vm: HomeViewModel = viewModel(
+            val homeVm: HomeViewModel = viewModel(
                 factory = HomeViewModelFactory(app.runRepository, app.userPreferences)
             )
-            HomeScreen(
-                viewModel = vm,
+            val analyticsVm: AnalyticsViewModel = viewModel(
+                factory = AnalyticsViewModelFactory(app.runRepository)
+            )
+            MainShell(
+                homeViewModel = homeVm,
+                analyticsViewModel = analyticsVm,
+                app = app,
                 onStartRun = { navController.navigate(Screen.Countdown.route) },
                 onRunClick = { id -> navController.navigate(Screen.RunDetail.createRoute(id)) },
-                onAnalytics = { navController.navigate(Screen.Analytics.route) },
-                onSettings = { navController.navigate(Screen.Settings.route) },
             )
         }
 

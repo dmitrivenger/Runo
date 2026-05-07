@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,46 +26,66 @@ import java.util.Locale
 
 @Composable
 fun RunTile(run: Run, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val dateFormatter = SimpleDateFormat("EEE, MMM d · h:mm a", Locale.getDefault())
-    val date = dateFormatter.format(Date(run.startTime))
+    val dateStr = SimpleDateFormat("EEE, MMM d · h:mm a", Locale.getDefault())
+        .format(Date(run.startTime))
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Date header
             Text(
-                text = date,
+                text = dateStr,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
+
+            // Distance hero + stats
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                StatItem(label = "Distance", value = "%.2f km".format(run.distanceKm))
-                StatItem(label = "Duration", value = run.formattedDuration())
-                StatItem(label = "Pace", value = run.formattedPace().replace(" /km", ""))
-                StatItem(label = "Calories", value = "${run.caloriesBurned.toInt()} kcal")
+                // Large distance on left
+                Column {
+                    Text(
+                        text = "%.2f".format(run.distanceKm),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "km",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Spacer(Modifier.width(1.dp).weight(1f))
+
+                // Stats on right
+                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    SmallStat(label = "Time", value = run.formattedDuration())
+                    SmallStat(label = "Pace", value = run.formattedPace().replace(" /km", ""))
+                    SmallStat(label = "kcal", value = "${run.caloriesBurned.toInt()}")
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StatItem(label: String, value: String) {
+private fun SmallStat(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        Spacer(Modifier.height(2.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
