@@ -15,7 +15,7 @@ import com.dmitrivenger.runo.ui.analytics.AnalyticsScreen
 import com.dmitrivenger.runo.ui.analytics.AnalyticsViewModel
 import com.dmitrivenger.runo.ui.components.RunoBottomNav
 import com.dmitrivenger.runo.ui.components.RunoTab
-import com.dmitrivenger.runo.ui.settings.SettingsScreen
+import com.dmitrivenger.runo.ui.profile.ProfileScreen
 
 @Composable
 fun MainShell(
@@ -24,6 +24,7 @@ fun MainShell(
     app: RunoApplication,
     onStartRun: () -> Unit,
     onRunClick: (Long) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(RunoTab.HOME) }
 
@@ -50,9 +51,9 @@ fun MainShell(
                     viewModel = analyticsViewModel,
                     onBack = { selectedTab = RunoTab.HOME },
                 )
-                RunoTab.PROFILE -> SettingsScreen(
+                RunoTab.PROFILE -> ProfileScreen(
                     preferences = app.userPreferences,
-                    onBack = { selectedTab = RunoTab.HOME },
+                    onOpenSettings = onOpenSettings,
                 )
             }
         }

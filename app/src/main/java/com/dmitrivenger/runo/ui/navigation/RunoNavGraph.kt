@@ -90,6 +90,7 @@ fun RunoNavGraph(app: RunoApplication) {
                 app = app,
                 onStartRun = { navController.navigate(Screen.Countdown.route) },
                 onRunClick = { id -> navController.navigate(Screen.RunDetail.createRoute(id)) },
+                onOpenSettings = { navController.navigate(Screen.Settings.route) },
             )
         }
 
