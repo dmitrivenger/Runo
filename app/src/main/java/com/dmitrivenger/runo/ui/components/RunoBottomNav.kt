@@ -22,10 +22,6 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -35,7 +31,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.ImageVector  // used by NavItem's icon parameter
 import androidx.compose.ui.unit.dp
 import com.dmitrivenger.runo.ui.theme.Brand_DeepGreen
 import com.dmitrivenger.runo.ui.theme.Brand_White
@@ -77,34 +73,30 @@ fun RunoBottomNav(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 NavItem(
-                    activeIcon   = Icons.Filled.Home,
-                    inactiveIcon = Icons.Outlined.Home,
-                    isActive     = currentTab == BottomNavTab.HOME,
-                    label        = "Home",
-                    onClick      = { onTabSelected(BottomNavTab.HOME) },
+                    icon     = Icons.Filled.Home,
+                    isActive = currentTab == BottomNavTab.HOME,
+                    label    = "Home",
+                    onClick  = { onTabSelected(BottomNavTab.HOME) },
                 )
                 NavItem(
-                    activeIcon   = Icons.Filled.BarChart,
-                    inactiveIcon = Icons.Outlined.BarChart,
-                    isActive     = currentTab == BottomNavTab.STATS,
-                    label        = "Stats",
-                    onClick      = { onTabSelected(BottomNavTab.STATS) },
+                    icon     = Icons.Filled.BarChart,
+                    isActive = currentTab == BottomNavTab.STATS,
+                    label    = "Stats",
+                    onClick  = { onTabSelected(BottomNavTab.STATS) },
                 )
-                // Empty slot for the raised Run circle above
+                // Empty centre slot — Run button floats above this space
                 Spacer(Modifier.width(56.dp))
                 NavItem(
-                    activeIcon   = Icons.Filled.Description,
-                    inactiveIcon = Icons.Outlined.Description,
-                    isActive     = currentTab == BottomNavTab.ACTIVITY,
-                    label        = "Activity",
-                    onClick      = { onTabSelected(BottomNavTab.ACTIVITY) },
+                    icon     = Icons.Filled.Description,
+                    isActive = currentTab == BottomNavTab.ACTIVITY,
+                    label    = "Activity",
+                    onClick  = { onTabSelected(BottomNavTab.ACTIVITY) },
                 )
                 NavItem(
-                    activeIcon   = Icons.Filled.Person,
-                    inactiveIcon = Icons.Outlined.Person,
-                    isActive     = currentTab == BottomNavTab.PROFILE,
-                    label        = "Profile",
-                    onClick      = { onTabSelected(BottomNavTab.PROFILE) },
+                    icon     = Icons.Filled.Person,
+                    isActive = currentTab == BottomNavTab.PROFILE,
+                    label    = "Profile",
+                    onClick  = { onTabSelected(BottomNavTab.PROFILE) },
                 )
             }
         }
@@ -135,8 +127,7 @@ fun RunoBottomNav(
 
 @Composable
 private fun NavItem(
-    activeIcon: ImageVector,
-    inactiveIcon: ImageVector,
+    icon: ImageVector,
     isActive: Boolean,
     label: String,
     onClick: () -> Unit,
@@ -153,7 +144,7 @@ private fun NavItem(
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = if (isActive) activeIcon else inactiveIcon,
+            imageVector = icon,
             contentDescription = label,
             tint = if (isActive) Brand_White else Brand_DeepGreen,
             modifier = Modifier
