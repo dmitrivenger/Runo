@@ -23,10 +23,13 @@ import com.dmitrivenger.runo.ui.run.ActiveRunScreen
 import com.dmitrivenger.runo.ui.run.ActiveRunViewModel
 import com.dmitrivenger.runo.ui.run.CountdownScreen
 import com.dmitrivenger.runo.ui.settings.SettingsScreen
+import com.dmitrivenger.runo.ui.splash.SplashScreen
 import com.dmitrivenger.runo.ui.summary.SummaryScreen
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 sealed class Screen(val route: String) {
+    object Splash : Screen("splash")
     object Welcome : Screen("welcome")
     object Onboarding : Screen("onboarding")
     object Home : Screen("home")
@@ -43,10 +46,20 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun RunoNavGraph(app: RunoApplication, startDestination: String) {
+fun RunoNavGraph(app: RunoApplication) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = startDestination) {
+    NavHost(navController = navController, startDestination = Screen.Splash.route) {
+
+        composable(Screen.Splash.route) {
+            SplashScreen(onComplete = {
+                val isOnboardingDone = runBlocking { app.userPreferences.isOnboardingDone.first() }
+                val dest = if (isOnboardingDone) Screen.Home.route else Screen.Welcome.route
+                navController.navigate(dest) {
+                    popUpTo(Screen.Splash.route) { inclusive = true }
+                }
+            })
+        }
 
         composable(Screen.Welcome.route) {
             WelcomeScreen(onGetStarted = { navController.navigate(Screen.Onboarding.route) })
@@ -65,7 +78,9 @@ fun RunoNavGraph(app: RunoApplication, startDestination: String) {
         }
 
         composable(Screen.Home.route) {
-            val vm: HomeViewModel = viewModel(factory = HomeViewModelFactory(app.runRepository, app.userPreferences))
+            val vm: HomeViewModel = viewModel(
+                factory = HomeViewModelFactory(app.runRepository, app.userPreferences)
+            )
             HomeScreen(
                 viewModel = vm,
                 onStartRun = { navController.navigate(Screen.Countdown.route) },
@@ -124,7 +139,9 @@ fun RunoNavGraph(app: RunoApplication, startDestination: String) {
         }
 
         composable(Screen.Analytics.route) {
-            val vm: AnalyticsViewModel = viewModel(factory = AnalyticsViewModelFactory(app.runRepository))
+            val vm: AnalyticsViewModel = viewModel(
+                factory = AnalyticsViewModelFactory(app.runRepository)
+            )
             AnalyticsScreen(viewModel = vm, onBack = { navController.popBackStack() })
         }
 
