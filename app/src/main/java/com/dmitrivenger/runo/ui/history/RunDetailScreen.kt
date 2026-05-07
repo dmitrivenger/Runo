@@ -12,16 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +35,7 @@ import com.dmitrivenger.runo.RunoApplication
 import com.dmitrivenger.runo.domain.model.LatLng
 import com.dmitrivenger.runo.domain.model.Run
 import com.dmitrivenger.runo.ui.components.MapLibreMapView
+import com.dmitrivenger.runo.ui.components.RunoTopBar
 import com.dmitrivenger.runo.ui.components.MetricCard
 import com.dmitrivenger.runo.ui.components.PaceChart
 import com.dmitrivenger.runo.ui.components.buildRouteGeoJson
@@ -66,26 +64,12 @@ fun RunDetailScreen(runId: Long, app: RunoApplication, onBack: () -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .safeDrawingPadding(),
         contentPadding = PaddingValues(bottom = 40.dp),
     ) {
         // ── Top bar ───────────────────────────────────────────────────────────
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 4.dp, top = 52.dp, end = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-            }
-        }
+        item { RunoTopBar(onBack = onBack) }
 
         // ── Header ────────────────────────────────────────────────────────────
         item {

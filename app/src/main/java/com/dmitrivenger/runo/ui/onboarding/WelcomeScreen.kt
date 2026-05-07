@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,11 +31,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dmitrivenger.runo.ui.components.RunoPrimaryButton
-import com.dmitrivenger.runo.ui.theme.Brand_Green
 import com.dmitrivenger.runo.ui.theme.Dark_Background
 import com.dmitrivenger.runo.ui.theme.Dark_OnSurfaceMuted
 import kotlinx.coroutines.delay
@@ -74,7 +76,8 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 56.dp)
+                .statusBarsPadding()
+                .padding(top = 16.dp)
                 .alpha(heroAlpha),
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -82,13 +85,13 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
                     modifier = Modifier
                         .size(64.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Brand_Green),
+                        .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = "R",
                         style = MaterialTheme.typography.displaySmall.copy(letterSpacing = (-1).sp),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -106,6 +109,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .alpha(contentAlpha)
+                .navigationBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
