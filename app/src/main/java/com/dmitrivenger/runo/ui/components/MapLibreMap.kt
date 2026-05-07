@@ -1,9 +1,11 @@
 package com.dmitrivenger.runo.ui.components
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.dmitrivenger.runo.domain.model.LatLng
@@ -12,26 +14,12 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.geometry.LatLng as MLLatLng
 
-// OSM raster tiles — no API key required.
-// Attribution is embedded in the style and displayed by MapLibre automatically.
-const val OSM_STYLE_JSON = """
-{
-  "version": 8,
-  "sources": {
-    "osm": {
-      "type": "raster",
-      "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      "tileSize": 256,
-      "attribution": "© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
-    }
-  },
-  "layers": [{
-    "id": "osm",
-    "type": "raster",
-    "source": "osm"
-  }]
-}
-"""
+// OpenFreeMap — free, no API key required.
+// Positron: clean off-white minimal style (matches Runo light design).
+// Liberty:  clean dark-toned style (matches Runo dark design).
+// Attribution is automatically displayed by MapLibre.
+private const val MAP_STYLE_LIGHT = "https://tiles.openfreemap.org/styles/positron"
+private const val MAP_STYLE_DARK  = "https://tiles.openfreemap.org/styles/liberty"
 
 fun LatLng.toMapLibre() = MLLatLng(latitude, longitude)
 
@@ -47,16 +35,19 @@ fun MapLibreMapView(
     onMapReady: (MapLibreMap, Style) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val styleUri = if (isDark) MAP_STYLE_DARK else MAP_STYLE_LIGHT
+
     val mapView = remember { MapView(context) }
 
     AndroidView(factory = { mapView }, modifier = modifier)
 
-    DisposableEffect(Unit) {
+    DisposableEffect(styleUri) {
         mapView.onCreate(null)
         mapView.onStart()
         mapView.onResume()
         mapView.getMapAsync { map ->
-            map.setStyle(Style.Builder().fromJson(OSM_STYLE_JSON)) { style ->
+            map.setStyle(Style.Builder().fromUri(styleUri)) { style ->
                 onMapReady(map, style)
             }
         }
