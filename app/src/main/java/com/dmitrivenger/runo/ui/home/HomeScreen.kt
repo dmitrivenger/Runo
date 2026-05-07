@@ -4,9 +4,18 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -53,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import com.dmitrivenger.runo.ui.theme.Brand_DeepGreen
+import com.dmitrivenger.runo.ui.theme.Brand_LeafGreen
 import com.dmitrivenger.runo.ui.theme.Brand_White
 import com.dmitrivenger.runo.ui.theme.Light_BackgroundCream
 import com.dmitrivenger.runo.ui.theme.Light_MutedGray
@@ -266,21 +278,7 @@ private fun HeroCard(onTap: () -> Unit) {
                 )
             }
 
-            // Right: white play circle with deep green triangle
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(Color.White),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = "Start run",
-                    tint = Brand_DeepGreen,
-                    modifier = Modifier.size(32.dp),
-                )
-            }
+            PulsingPlayButton(onClick = onTap)
         }
     }
 }
@@ -396,4 +394,76 @@ private fun buildGreeting(): String = when (Calendar.getInstance().get(Calendar.
     in 5..11  -> "Good morning,"
     in 12..17 -> "Good afternoon,"
     else       -> "Good evening,"
+}
+
+// ── Pulsing play button ───────────────────────────────────────────────────────
+@Composable
+private fun PulsingPlayButton(onClick: () -> Unit) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulseRing")
+    val pulseProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "pulseProgress",
+    )
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = tween(durationMillis = 150),
+        label = "pressScale",
+    )
+
+    Box(modifier = Modifier.size(96.dp), contentAlignment = Alignment.Center) {
+        // Pulsing outer ring
+        Canvas(modifier = Modifier.matchParentSize()) {
+            val baseRadius = 34.dp.toPx()
+            val expansionRadius = 14.dp.toPx()
+            drawCircle(
+                color = Brand_LeafGreen.copy(alpha = 0.4f * (1f - pulseProgress)),
+                radius = baseRadius + pulseProgress * expansionRadius,
+                center = center,
+                style = Stroke(width = 2.dp.toPx()),
+            )
+        }
+        // Soft glow underneath
+        Box(
+            modifier = Modifier
+                .size(76.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Brand_LeafGreen.copy(alpha = 0.30f), Color.Transparent),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
+        // White circle with gradient + press scale
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .scale(pressScale)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.White, Light_BackgroundCream),
+                    ),
+                )
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.PlayArrow,
+                contentDescription = "Start run",
+                tint = Brand_DeepGreen,
+                modifier = Modifier.size(32.dp),
+            )
+        }
+    }
 }
