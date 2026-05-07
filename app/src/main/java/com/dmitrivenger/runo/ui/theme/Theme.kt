@@ -5,54 +5,55 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = DarkGreen,
-    onPrimary = Color.Black,
-    primaryContainer = DarkGreenVariant,
-    onPrimaryContainer = Color.White,
-    secondary = DarkBlue,
-    onSecondary = Color.White,
-    tertiary = DarkRed,
-    onTertiary = Color.White,
-    background = DarkBackground,
-    onBackground = DarkOnBackground,
-    surface = DarkSurface,
-    onSurface = DarkOnSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceMuted,
-    outline = DarkOnSurfaceMuted,
+    primary              = Brand_Green,
+    onPrimary            = Brand_OnGreenDark,
+    primaryContainer     = Brand_GreenVariant,
+    onPrimaryContainer   = Dark_OnBackground,
+    secondary            = Brand_Blue,
+    onSecondary          = Dark_OnBackground,
+    tertiary             = Brand_Red,
+    onTertiary           = Dark_OnBackground,
+    background           = Dark_Background,
+    onBackground         = Dark_OnBackground,
+    surface              = Dark_Surface,
+    onSurface            = Dark_OnSurface,
+    surfaceVariant       = Dark_SurfaceVariant,
+    onSurfaceVariant     = Dark_OnSurfaceMuted,
+    outline              = Dark_OnSurfaceMuted,
+    error                = Brand_Red,
+    onError              = Dark_OnBackground,
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LightGreen,
-    onPrimary = Color.White,
-    primaryContainer = LightGreenVariant,
-    onPrimaryContainer = Color.White,
-    secondary = LightBlue,
-    onSecondary = Color.White,
-    tertiary = LightRed,
-    onTertiary = Color.White,
-    background = LightBackground,
-    onBackground = LightOnBackground,
-    surface = LightSurface,
-    onSurface = LightOnSurface,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightOnSurfaceMuted,
-    outline = LightOnSurfaceMuted,
+    primary              = Brand_Green,
+    onPrimary            = Brand_OnGreenLight,
+    primaryContainer     = Brand_GreenVariant,
+    onPrimaryContainer   = Light_OnBackground,
+    secondary            = Brand_Blue,
+    onSecondary          = Light_OnBackground,
+    tertiary             = Brand_Red,
+    onTertiary           = Light_OnBackground,
+    background           = Light_Background,
+    onBackground         = Light_OnBackground,
+    surface              = Light_Surface,
+    onSurface            = Light_OnSurface,
+    surfaceVariant       = Light_SurfaceVariant,
+    onSurfaceVariant     = Light_OnSurfaceMuted,
+    outline              = Light_OnSurfaceMuted,
+    error                = Brand_Red,
+    onError              = Light_Surface,
 )
 
 @Composable
 fun RunoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         typography = Typography,
-        content = content
+        content = content,
     )
 }
