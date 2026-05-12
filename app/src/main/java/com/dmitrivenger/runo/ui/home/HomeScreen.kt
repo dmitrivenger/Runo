@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -48,7 +49,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -58,33 +58,24 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
+import com.dmitrivenger.runo.R
+import com.dmitrivenger.runo.domain.model.Run
 import com.dmitrivenger.runo.ui.theme.Brand_DeepGreen
 import com.dmitrivenger.runo.ui.theme.Brand_LeafGreen
 import com.dmitrivenger.runo.ui.theme.Brand_White
 import com.dmitrivenger.runo.ui.theme.Light_BackgroundCream
 import com.dmitrivenger.runo.ui.theme.Light_MutedGray
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
-// ── Mock data (replaced by Room DB in a later prompt) ────────────────────────
-private data class MockRun(
-    val date: String,
-    val distanceText: String,
-    val paceText: String,
-    val sparkPoints: List<Float>,   // normalised 0..1, index 0 = run start
-)
-
-private val mockRuns = listOf(
-    MockRun("May 14", "5.21 km", "6'24\"/km", listOf(0.50f, 0.65f, 0.42f, 0.72f, 0.55f, 0.63f, 0.48f)),
-    MockRun("May 12", "6.15 km", "6'15\"/km", listOf(0.35f, 0.52f, 0.70f, 0.45f, 0.68f, 0.50f, 0.72f)),
-    MockRun("May 10", "4.8 km",  "6'40\"/km", listOf(0.62f, 0.44f, 0.72f, 0.50f, 0.40f, 0.65f, 0.52f)),
-)
-
-// ── Screen ────────────────────────────────────────────────────────────────────
 @Composable
 fun HomeContent(
     viewModel: HomeViewModel,
@@ -93,6 +84,7 @@ fun HomeContent(
 ) {
     val context = LocalContext.current
     val profile by viewModel.profile.collectAsState()
+    val runs by viewModel.runs.collectAsState()
     var showRationale by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -124,7 +116,6 @@ fun HomeContent(
         }
     }
 
-    // Full-screen cream background (fills behind status bar in edge-to-edge mode)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -133,58 +124,55 @@ fun HomeContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding(),    // push content below transparent status bar
+                .statusBarsPadding(),
             contentPadding = PaddingValues(
                 start = 24.dp,
                 end = 24.dp,
                 top = 24.dp,
-                bottom = 8.dp,          // Scaffold's innerPadding handles nav-bar clearance
+                bottom = 8.dp,
             ),
         ) {
-            // ── Greeting ─────────────────────────────────────────────────────
             item {
-                GreetingRow(
-                    name = if (profile.name.isNotBlank()) profile.name else "Runner",
-                )
+                GreetingRow(name = if (profile.name.isNotBlank()) profile.name else stringResource(R.string.default_name))
             }
 
             item { Spacer(Modifier.height(32.dp)) }
 
-            // ── Hero card ─────────────────────────────────────────────────────
             item {
                 HeroCard(onTap = { handleStartRun() })
             }
 
             item { Spacer(Modifier.height(32.dp)) }
 
-            // ── Recent Runs header ────────────────────────────────────────────
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    Text(
-                        text = "Recent Runs",
-                        style = MaterialTheme.typography.titleLarge,    // 28sp SemiBold
-                        color = Brand_DeepGreen,
-                    )
-                    Text(
-                        text = "View all",
-                        style = MaterialTheme.typography.labelLarge,    // 14sp Medium
-                        color = Light_MutedGray,
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.recent_runs),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Brand_DeepGreen,
+                )
             }
 
             item { Spacer(Modifier.height(16.dp)) }
 
-            // ── Run cards ─────────────────────────────────────────────────────
-            // All three in a Column so they share one LazyColumn item — avoids
-            // the items() import and keeps spacing simple.
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    mockRuns.forEach { run -> RunCard(run = run) }
+            if (runs.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.runs_placeholder),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Light_MutedGray,
+                        )
+                    }
+                }
+            } else {
+                items(runs, key = { it.id }) { run ->
+                    RunCard(run = run, onClick = { onRunClick(run.id) })
+                    Spacer(Modifier.height(12.dp))
                 }
             }
         }
@@ -193,50 +181,29 @@ fun HomeContent(
     if (showRationale) {
         AlertDialog(
             onDismissRequest = { showRationale = false },
-            title = { Text("Location needed") },
-            text = { Text("Runo needs location access to track your run. Please grant it in your device Settings.") },
+            title = { Text(stringResource(R.string.location_needed)) },
+            text = { Text(stringResource(R.string.location_rationale)) },
             confirmButton = {
-                TextButton(onClick = { showRationale = false }) { Text("OK") }
+                TextButton(onClick = { showRationale = false }) { Text(stringResource(R.string.ok)) }
             },
         )
     }
 }
 
-// ── Greeting row ──────────────────────────────────────────────────────────────
+// ── Greeting row (no avatar) ──────────────────────────────────────────────────
 @Composable
 private fun GreetingRow(name: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column {
-            Text(
-                text = buildGreeting(),
-                style = MaterialTheme.typography.bodyLarge,     // 16sp Regular
-                color = Light_MutedGray,
-            )
-            Text(
-                text = name,
-                style = MaterialTheme.typography.headlineSmall, // 36sp Bold
-                color = Brand_DeepGreen,
-            )
-        }
-
-        // Avatar — circle with user's initial; replace with photo picker later
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(Brand_DeepGreen.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = name.take(1).uppercase().ifBlank { "R" },
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Brand_DeepGreen,
-            )
-        }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = buildGreeting(),
+            style = MaterialTheme.typography.bodyLarge,
+            color = Light_MutedGray,
+        )
+        Text(
+            text = name,
+            style = MaterialTheme.typography.headlineSmall,
+            color = Brand_DeepGreen,
+        )
     }
 }
 
@@ -260,10 +227,9 @@ private fun HeroCard(onTap: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Left: text
             Column {
                 Text(
-                    text = "Ready to run?",
+                    text = stringResource(R.string.ready_to_run),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 28.sp,
@@ -272,12 +238,11 @@ private fun HeroCard(onTap: () -> Unit) {
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Start your next adventure.",
+                    text = stringResource(R.string.start_adventure),
                     style = MaterialTheme.typography.bodyLarge,
                     color = Brand_White.copy(alpha = 0.8f),
                 )
             }
-
             PulsingPlayButton(onClick = onTap)
         }
     }
@@ -285,11 +250,21 @@ private fun HeroCard(onTap: () -> Unit) {
 
 // ── Run card ──────────────────────────────────────────────────────────────────
 @Composable
-private fun RunCard(run: MockRun) {
+private fun RunCard(run: Run, onClick: () -> Unit) {
+    val dateStr = SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(run.startTime))
+    val sparkPoints = if (run.kmPaces.isNotEmpty()) {
+        val values = run.kmPaces.entries.sortedBy { it.key }.map { it.value }
+        val max = values.max().coerceAtLeast(1f)
+        values.map { 1f - (it / max) }
+    } else {
+        listOf(0.5f, 0.6f, 0.5f, 0.7f, 0.55f)
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(96.dp),
+            .height(96.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
         shadowElevation = 4.dp,
@@ -301,16 +276,15 @@ private fun RunCard(run: MockRun) {
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Left: date above distance
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = run.date,
-                    style = MaterialTheme.typography.labelMedium,   // 13sp Medium
+                    text = dateStr,
+                    style = MaterialTheme.typography.labelMedium,
                     color = Light_MutedGray,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = run.distanceText,
+                    text = "%.2f ${stringResource(R.string.unit_km)}".format(run.distanceKm),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 24.sp,
@@ -319,18 +293,16 @@ private fun RunCard(run: MockRun) {
                 )
             }
 
-            // Middle: pace
             Text(
-                text = run.paceText,
-                style = MaterialTheme.typography.labelLarge,        // 14sp Medium
+                text = run.formattedPace().replace(" /km", " ${stringResource(R.string.unit_per_km)}"),
+                style = MaterialTheme.typography.labelLarge,
                 color = Brand_DeepGreen,
             )
 
             Spacer(Modifier.width(16.dp))
 
-            // Right: sparkline
-            SparklineGraph(
-                points = run.sparkPoints,
+            PaceSparkline(
+                points = sparkPoints,
                 modifier = Modifier
                     .width(96.dp)
                     .height(56.dp)
@@ -340,11 +312,9 @@ private fun RunCard(run: MockRun) {
     }
 }
 
-// ── Sparkline graph ───────────────────────────────────────────────────────────
-// Draws a smooth bezier curve with a 15%-opacity filled area underneath.
-// Background is the brand cream so it blends into the white card.
+// ── Pace sparkline (line graph) ───────────────────────────────────────────────
 @Composable
-private fun SparklineGraph(points: List<Float>, modifier: Modifier = Modifier) {
+private fun PaceSparkline(points: List<Float>, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.background(Light_BackgroundCream)) {
         if (points.size < 2) return@Canvas
 
@@ -353,12 +323,9 @@ private fun SparklineGraph(points: List<Float>, modifier: Modifier = Modifier) {
         val drawW = size.width - padH * 2
         val drawH = size.height - padV * 2
 
-        // Map each point to pixel coordinates.
-        // Y is inverted: higher float value = higher on screen.
-        val xs = points.indices.map { i -> padH + i.toFloat() / (points.lastIndex) * drawW }
+        val xs = points.indices.map { i -> padH + i.toFloat() / points.lastIndex * drawW }
         val ys = points.map { p -> padV + (1f - p) * drawH }
 
-        // Smooth cubic bezier — control points pulled toward the midpoint X
         val linePath = Path().apply {
             moveTo(xs[0], ys[0])
             for (i in 1 until points.size) {
@@ -366,8 +333,6 @@ private fun SparklineGraph(points: List<Float>, modifier: Modifier = Modifier) {
                 cubicTo(cpX, ys[i - 1], cpX, ys[i], xs[i], ys[i])
             }
         }
-
-        // Area fill — 15% opacity leaf green
         val fillPath = Path().apply {
             addPath(linePath)
             lineTo(xs.last(), size.height)
@@ -375,25 +340,25 @@ private fun SparklineGraph(points: List<Float>, modifier: Modifier = Modifier) {
             close()
         }
         drawPath(fillPath, color = Color(0xFF5C9A4A).copy(alpha = 0.15f))
-
-        // Line — 2dp leaf green
         drawPath(
             path = linePath,
             color = Color(0xFF5C9A4A),
-            style = Stroke(
-                width = 2.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round,
-            ),
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
         )
     }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-private fun buildGreeting(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-    in 5..11  -> "Good morning,"
-    in 12..17 -> "Good afternoon,"
-    else       -> "Good evening,"
+@Composable
+private fun buildGreeting(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return stringResource(
+        when (hour) {
+            in 5..11  -> R.string.greeting_morning
+            in 12..17 -> R.string.greeting_afternoon
+            else       -> R.string.greeting_evening
+        }
+    )
 }
 
 // ── Pulsing play button ───────────────────────────────────────────────────────
@@ -418,7 +383,6 @@ private fun PulsingPlayButton(onClick: () -> Unit) {
     )
 
     Box(modifier = Modifier.size(96.dp), contentAlignment = Alignment.Center) {
-        // Pulsing outer ring
         Canvas(modifier = Modifier.matchParentSize()) {
             val baseRadius = 34.dp.toPx()
             val expansionRadius = 14.dp.toPx()
@@ -429,7 +393,6 @@ private fun PulsingPlayButton(onClick: () -> Unit) {
                 style = Stroke(width = 2.dp.toPx()),
             )
         }
-        // Soft glow underneath
         Box(
             modifier = Modifier
                 .size(76.dp)
@@ -440,7 +403,6 @@ private fun PulsingPlayButton(onClick: () -> Unit) {
                     shape = CircleShape,
                 ),
         )
-        // White circle with gradient + press scale
         Box(
             modifier = Modifier
                 .size(64.dp)
@@ -460,7 +422,7 @@ private fun PulsingPlayButton(onClick: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Filled.PlayArrow,
-                contentDescription = "Start run",
+                contentDescription = stringResource(R.string.start_run_cd),
                 tint = Brand_DeepGreen,
                 modifier = Modifier.size(32.dp),
             )

@@ -1,5 +1,7 @@
 package com.dmitrivenger.runo.ui.settings
 
+import android.app.Activity
+import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -17,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -27,11 +28,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.dmitrivenger.runo.R
 import com.dmitrivenger.runo.data.preferences.UserPreferences
 import com.dmitrivenger.runo.domain.model.UserProfile
 import com.dmitrivenger.runo.ui.components.RunoToggle
@@ -51,6 +53,13 @@ fun SettingsScreen(
         scope.launch { preferences.saveProfile(updated) }
     }
 
+    fun switchLanguage(lang: String) {
+        scope.launch { preferences.saveProfile(profile.copy(language = lang)) }
+        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            .edit().putString("language", lang).apply()
+        (context as? Activity)?.recreate()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -60,12 +69,14 @@ fun SettingsScreen(
         RunoTopBar(onBack = onBack)
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding(),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
         ) {
             item {
                 Text(
-                    text = "Settings",
+                    text = stringResource(R.string.settings),
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(start = 4.dp, bottom = 28.dp),
@@ -74,15 +85,18 @@ fun SettingsScreen(
 
             // ── Run tracking ─────────────────────────────────────────────────
             item {
-                SettingsSection(title = "Run tracking") {
+                SettingsSection(title = stringResource(R.string.section_run_tracking)) {
                     Text(
-                        text = "Distance units",
+                        text = stringResource(R.string.distance_units),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(Modifier.height(10.dp))
                     ChipRow(
-                        options = listOf("Kilometres" to true, "Miles" to false),
+                        options = listOf(
+                            stringResource(R.string.unit_kilometres) to true,
+                            stringResource(R.string.unit_miles) to false,
+                        ),
                         selected = profile.useMetricUnits,
                         onSelect = { save(profile.copy(useMetricUnits = it)) },
                     )
@@ -92,10 +106,10 @@ fun SettingsScreen(
 
             // ── Voice coach ──────────────────────────────────────────────────
             item {
-                SettingsSection(title = "Voice coach") {
+                SettingsSection(title = stringResource(R.string.section_voice_coach)) {
                     RunoToggle(
-                        label = "Voice feedback",
-                        description = "Spoken announcements during your run",
+                        label = stringResource(R.string.voice_feedback),
+                        description = stringResource(R.string.voice_feedback_desc),
                         checked = profile.voiceFeedbackEnabled,
                         onCheckedChange = { save(profile.copy(voiceFeedbackEnabled = it)) },
                     )
@@ -110,15 +124,20 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
                             )
                             Text(
-                                text = "Announce every",
+                                text = stringResource(R.string.announce_every),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                             Spacer(Modifier.height(10.dp))
                             ChipRow(
-                                options = listOf("1 km" to 1, "2 km" to 2, "5 km" to 5),
-                                selected = profile.voiceIntervalKm,
-                                onSelect = { save(profile.copy(voiceIntervalKm = it)) },
+                                options = listOf(
+                                    stringResource(R.string.interval_500m) to 500,
+                                    stringResource(R.string.interval_1km) to 1000,
+                                    stringResource(R.string.interval_2km) to 2000,
+                                    stringResource(R.string.interval_5km) to 5000,
+                                ),
+                                selected = profile.voiceIntervalMeters,
+                                onSelect = { save(profile.copy(voiceIntervalMeters = it)) },
                             )
                         }
                     }
@@ -128,12 +147,27 @@ fun SettingsScreen(
 
             // ── Appearance ───────────────────────────────────────────────────
             item {
-                SettingsSection(title = "Appearance") {
+                SettingsSection(title = stringResource(R.string.section_appearance)) {
                     RunoToggle(
-                        label = "Dark mode",
-                        description = "Use dark theme throughout the app",
+                        label = stringResource(R.string.dark_mode),
+                        description = stringResource(R.string.dark_mode_desc),
                         checked = profile.darkMode,
                         onCheckedChange = { save(profile.copy(darkMode = it)) },
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
+            // ── Language ─────────────────────────────────────────────────────
+            item {
+                SettingsSection(title = stringResource(R.string.section_language)) {
+                    ChipRow(
+                        options = listOf(
+                            stringResource(R.string.lang_english) to "en",
+                            stringResource(R.string.lang_russian) to "ru",
+                        ),
+                        selected = profile.language,
+                        onSelect = { lang -> switchLanguage(lang) },
                     )
                 }
                 Spacer(Modifier.height(32.dp))
@@ -147,7 +181,7 @@ fun SettingsScreen(
                     "1.0"
                 }
                 Text(
-                    text = "Runo $versionName",
+                    text = stringResource(R.string.version_label, versionName ?: "1.0"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 4.dp),

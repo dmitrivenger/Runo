@@ -53,21 +53,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dmitrivenger.runo.domain.model.UserProfile
 import com.dmitrivenger.runo.ui.components.MapLibreMapView
+import com.dmitrivenger.runo.ui.components.buildPointGeoJson
 import com.dmitrivenger.runo.ui.components.buildRouteGeoJson
 import com.dmitrivenger.runo.ui.components.toMapLibre
 import kotlinx.coroutines.launch
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.sources.GeoJsonSource
 
-private const val ROUTE_SOURCE_ID  = "route-source"
-private const val ROUTE_LAYER_GLOW = "route-layer-glow"
-private const val ROUTE_LAYER_LINE = "route-layer-line"
-private const val BRAND_GREEN      = "#22C55E"
+private const val ROUTE_SOURCE_ID   = "route-source"
+private const val ROUTE_LAYER_GLOW  = "route-layer-glow"
+private const val ROUTE_LAYER_LINE  = "route-layer-line"
+private const val TRAIL_SOURCE_ID   = "trail-source"
+private const val TRAIL_LAYER_ID    = "trail-layer"
+private const val POINTER_SOURCE_ID = "pointer-source"
+private const val POINTER_LAYER_ID  = "pointer-layer"
+private const val ROUTE_COLOR       = "#0F3D2E"   // brand deep green
+private const val ROUTE_GLOW_COLOR  = "#A8C290"   // soft green tint glow
+private const val TRAIL_COLOR       = "#4285F4"   // soft blue recent-trail
+private const val TRAIL_POINTS      = 15
 
 @Composable
 fun ActiveRunScreen(
@@ -81,13 +90,18 @@ fun ActiveRunScreen(
 
     var mapController by remember { mutableStateOf<MapLibreMap?>(null) }
     var routeSource by remember { mutableStateOf<GeoJsonSource?>(null) }
+    var trailSource by remember { mutableStateOf<GeoJsonSource?>(null) }
+    var pointerSource by remember { mutableStateOf<GeoJsonSource?>(null) }
 
-    LaunchedEffect(routeSource, state.routePoints) {
-        val src = routeSource ?: return@LaunchedEffect
-        src.setGeoJson(buildRouteGeoJson(state.routePoints))
+    LaunchedEffect(routeSource, trailSource, pointerSource, state.routePoints) {
+        val rSrc = routeSource ?: return@LaunchedEffect
+        rSrc.setGeoJson(buildRouteGeoJson(state.routePoints))
+        val trailPoints = state.routePoints.takeLast(TRAIL_POINTS)
+        trailSource?.setGeoJson(buildRouteGeoJson(trailPoints))
         state.routePoints.lastOrNull()?.let { last ->
-            mapController?.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(last.toMapLibre(), 16.0), 800
+            pointerSource?.setGeoJson(buildPointGeoJson(last))
+            mapController?.easeCamera(
+                CameraUpdateFactory.newLatLngZoom(last.toMapLibre(), 16.0), 500
             )
         }
     }
@@ -97,7 +111,11 @@ fun ActiveRunScreen(
         MapLibreMapView(
             modifier = Modifier.fillMaxSize(),
             onMapReady = { map, style ->
-                setupRouteLayer(style) { src -> routeSource = src }
+                setupRouteLayer(style) { rSrc, tSrc, pSrc ->
+                    routeSource = rSrc
+                    trailSource = tSrc
+                    pointerSource = pSrc
+                }
                 mapController = map
             }
         )
@@ -131,8 +149,8 @@ fun ActiveRunScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
+                .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                .background(MaterialTheme.colorScheme.surface)
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -150,26 +168,32 @@ fun ActiveRunScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                RunMetric(
-                    label = "DISTANCE",
-                    value = "%.2f".format(state.distanceMeters / 1000f),
-                    unit = "km",
-                )
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    RunMetric(
+                        label = "DISTANCE",
+                        value = "%.2f".format(state.distanceMeters / 1000f),
+                        unit = "km",
+                    )
+                }
                 VerticalMetricDivider()
-                RunMetric(
-                    label = "PACE",
-                    value = formatPace(state.currentPaceSecondsPerKm),
-                    unit = "/km",
-                )
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    RunMetric(
+                        label = "PACE",
+                        value = formatPace(state.currentPaceSecondsPerKm),
+                        unit = "/km",
+                    )
+                }
                 VerticalMetricDivider()
-                RunMetric(
-                    label = "TIME",
-                    value = formatTime(state.elapsedSeconds),
-                    unit = "",
-                )
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    RunMetric(
+                        label = "TIME",
+                        value = formatTime(state.elapsedSeconds),
+                        unit = "",
+                    )
+                }
             }
 
             HorizontalDivider(
@@ -302,32 +326,61 @@ fun ActiveRunScreen(
     }
 }
 
-private fun setupRouteLayer(style: Style, onSourceReady: (GeoJsonSource) -> Unit) {
-    val source = GeoJsonSource(ROUTE_SOURCE_ID, """{"type":"FeatureCollection","features":[]}""")
-    style.addSource(source)
+private fun setupRouteLayer(
+    style: Style,
+    onSourcesReady: (route: GeoJsonSource, trail: GeoJsonSource, pointer: GeoJsonSource) -> Unit,
+) {
+    val empty = """{"type":"FeatureCollection","features":[]}"""
+    val routeSrc   = GeoJsonSource(ROUTE_SOURCE_ID, empty)
+    val trailSrc   = GeoJsonSource(TRAIL_SOURCE_ID, empty)
+    val pointerSrc = GeoJsonSource(POINTER_SOURCE_ID, empty)
+    style.addSource(routeSrc)
+    style.addSource(trailSrc)
+    style.addSource(pointerSrc)
 
-    // Outer glow — wide, semi-transparent
+    // Outer glow — soft, wide halo matching brand tint
     style.addLayer(
         LineLayer(ROUTE_LAYER_GLOW, ROUTE_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(BRAND_GREEN),
-            PropertyFactory.lineWidth(18f),
-            PropertyFactory.lineOpacity(0.25f),
+            PropertyFactory.lineColor(ROUTE_GLOW_COLOR),
+            PropertyFactory.lineWidth(20f),
+            PropertyFactory.lineOpacity(0.35f),
             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
         )
     )
 
-    // Inner line — solid
+    // Inner route line — brand deep green
     style.addLayer(
         LineLayer(ROUTE_LAYER_LINE, ROUTE_SOURCE_ID).withProperties(
-            PropertyFactory.lineColor(BRAND_GREEN),
-            PropertyFactory.lineWidth(6f),
+            PropertyFactory.lineColor(ROUTE_COLOR),
+            PropertyFactory.lineWidth(5f),
             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
         )
     )
 
-    onSourceReady(source)
+    // Blue trailing highlight — last N points
+    style.addLayer(
+        LineLayer(TRAIL_LAYER_ID, TRAIL_SOURCE_ID).withProperties(
+            PropertyFactory.lineColor(TRAIL_COLOR),
+            PropertyFactory.lineWidth(5f),
+            PropertyFactory.lineOpacity(0.85f),
+            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+        )
+    )
+
+    // Current-position pointer circle
+    style.addLayer(
+        CircleLayer(POINTER_LAYER_ID, POINTER_SOURCE_ID).withProperties(
+            PropertyFactory.circleColor(TRAIL_COLOR),
+            PropertyFactory.circleRadius(10f),
+            PropertyFactory.circleStrokeColor("#FFFFFF"),
+            PropertyFactory.circleStrokeWidth(3f),
+        )
+    )
+
+    onSourcesReady(routeSrc, trailSrc, pointerSrc)
 }
 
 @Composable
@@ -338,10 +391,10 @@ private fun RunMetric(label: String, value: String, unit: String) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         Text(
             text = value,
-            style = MaterialTheme.typography.displaySmall,
+            style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (unit.isNotEmpty()) {

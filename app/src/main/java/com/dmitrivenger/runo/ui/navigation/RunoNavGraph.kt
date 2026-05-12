@@ -20,10 +20,10 @@ import com.dmitrivenger.runo.ui.home.MainShell
 import com.dmitrivenger.runo.ui.onboarding.OnboardingScreen
 import com.dmitrivenger.runo.ui.onboarding.WelcomeScreen
 import com.dmitrivenger.runo.ui.run.ActiveRunScreen
+import com.dmitrivenger.runo.ui.splash.SplashScreen
 import com.dmitrivenger.runo.ui.run.ActiveRunViewModel
 import com.dmitrivenger.runo.ui.run.CountdownScreen
 import com.dmitrivenger.runo.ui.settings.SettingsScreen
-import com.dmitrivenger.runo.ui.splash.SplashScreen
 import com.dmitrivenger.runo.ui.summary.SummaryScreen
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking

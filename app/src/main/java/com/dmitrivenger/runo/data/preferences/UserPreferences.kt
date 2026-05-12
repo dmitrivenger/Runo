@@ -28,7 +28,8 @@ class UserPreferences(private val context: Context) {
         val DARK_MODE = booleanPreferencesKey("dark_mode")
         val VOICE_FEEDBACK = booleanPreferencesKey("voice_feedback")
         val USE_METRIC = booleanPreferencesKey("use_metric")
-        val VOICE_INTERVAL_KM = intPreferencesKey("voice_interval_km")
+        val VOICE_INTERVAL_M = intPreferencesKey("voice_interval_m")
+        val LANGUAGE = stringPreferencesKey("language")
     }
 
     val userProfile: Flow<UserProfile> = context.dataStore.data.map { prefs ->
@@ -38,10 +39,11 @@ class UserPreferences(private val context: Context) {
             heightCm = prefs[Keys.HEIGHT_CM] ?: 0f,
             weightKg = prefs[Keys.WEIGHT_KG] ?: 0f,
             goal = RunGoal.entries.find { it.name == prefs[Keys.GOAL] } ?: RunGoal.STAY_ACTIVE,
-            darkMode = prefs[Keys.DARK_MODE] ?: true,
+            darkMode = prefs[Keys.DARK_MODE] ?: false,
             voiceFeedbackEnabled = prefs[Keys.VOICE_FEEDBACK] ?: true,
             useMetricUnits = prefs[Keys.USE_METRIC] ?: true,
-            voiceIntervalKm = prefs[Keys.VOICE_INTERVAL_KM] ?: 1,
+            voiceIntervalMeters = prefs[Keys.VOICE_INTERVAL_M] ?: 1000,
+            language = prefs[Keys.LANGUAGE] ?: "en",
         )
     }
 
@@ -59,7 +61,8 @@ class UserPreferences(private val context: Context) {
             prefs[Keys.DARK_MODE] = profile.darkMode
             prefs[Keys.VOICE_FEEDBACK] = profile.voiceFeedbackEnabled
             prefs[Keys.USE_METRIC] = profile.useMetricUnits
-            prefs[Keys.VOICE_INTERVAL_KM] = profile.voiceIntervalKm
+            prefs[Keys.VOICE_INTERVAL_M] = profile.voiceIntervalMeters
+            prefs[Keys.LANGUAGE] = profile.language
         }
     }
 

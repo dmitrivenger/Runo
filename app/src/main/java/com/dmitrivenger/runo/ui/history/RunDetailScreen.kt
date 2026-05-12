@@ -4,22 +4,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,18 +32,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.dmitrivenger.runo.RunoApplication
 import com.dmitrivenger.runo.domain.model.LatLng
 import com.dmitrivenger.runo.domain.model.Run
 import com.dmitrivenger.runo.ui.components.MapLibreMapView
-import com.dmitrivenger.runo.ui.components.RunoTopBar
-import com.dmitrivenger.runo.ui.components.MetricCard
-import com.dmitrivenger.runo.ui.components.PaceChart
+import com.dmitrivenger.runo.ui.components.buildPointGeoJson
 import com.dmitrivenger.runo.ui.components.buildRouteGeoJson
 import com.dmitrivenger.runo.ui.components.toMapLibre
+import com.dmitrivenger.runo.ui.theme.Brand_DeepGreen
+import com.dmitrivenger.runo.ui.theme.Light_MutedGray
+import kotlinx.coroutines.delay
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLngBounds
+import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
@@ -50,7 +57,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private const val BRAND_GREEN = "#22C55E"
+private const val ROUTE_COLOR      = "#0F3D2E"
+private const val ROUTE_GLOW_COLOR = "#A8C290"
 
 @Composable
 fun RunDetailScreen(runId: Long, app: RunoApplication, onBack: () -> Unit) {
@@ -58,234 +66,238 @@ fun RunDetailScreen(runId: Long, app: RunoApplication, onBack: () -> Unit) {
     LaunchedEffect(runId) { run = app.runRepository.getRunById(runId) }
     val r = run ?: return
 
-    val dayDate = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date(r.startTime))
-    val time = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(r.startTime))
+    Box(modifier = Modifier.fillMaxSize()) {
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .safeDrawingPadding(),
-        contentPadding = PaddingValues(bottom = 40.dp),
-    ) {
-        // ── Top bar ───────────────────────────────────────────────────────────
-        item { RunoTopBar(onBack = onBack) }
-
-        // ── Header ────────────────────────────────────────────────────────────
-        item {
-            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                Text(
-                    text = dayDate,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                Text(
-                    text = time,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(20.dp))
-
-                // Hero: distance large
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = "%.2f".format(r.distanceKm),
-                        style = MaterialTheme.typography.displayMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "km",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 6.dp),
-                    )
-                }
-                Spacer(Modifier.height(20.dp))
-            }
-        }
-
-        // ── Stats grid ────────────────────────────────────────────────────────
-        item {
-            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    MetricCard(
-                        label = "Time",
-                        value = r.formattedDuration(),
-                        modifier = Modifier.weight(1f),
-                    )
-                    MetricCard(
-                        label = "Pace",
-                        value = r.formattedPace().replace(" /km", ""),
-                        unit = "/km",
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
-                MetricCard(
-                    label = "Calories",
-                    value = "${r.caloriesBurned.toInt()}",
-                    unit = "kcal",
-                    valueColor = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(28.dp))
-            }
-        }
-
-        // ── Route map ─────────────────────────────────────────────────────────
+        // ── Full-screen route map with animated pointer ───────────────────────
         if (r.routePoints.size >= 2) {
-            item {
-                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                    SectionHeading("Route")
-                    Spacer(Modifier.height(10.dp))
-                    DetailRouteMap(
-                        points = r.routePoints,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(4f / 3f)
-                            .clip(RoundedCornerShape(20.dp)),
-                    )
-                    Spacer(Modifier.height(28.dp))
-                }
-            }
-        }
-
-        // ── Pace breakdown ────────────────────────────────────────────────────
-        if (r.kmPaces.size >= 2) {
-            item {
-                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                    SectionHeading("Pace breakdown")
-                    Spacer(Modifier.height(10.dp))
-
-                    val sorted = r.kmPaces.entries.sortedBy { it.key }
-                    val maxPace = sorted.maxOf { it.value }.coerceAtLeast(1f)
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(16.dp),
-                    ) {
-                        PaceChart(
-                            values = sorted.map { it.value },
-                            lineColor = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    sorted.forEachIndexed { index, (km, pace) ->
-                        if (index > 0) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.padding(vertical = 10.dp),
-                            )
-                        }
-                        KmPaceRow(km = km, paceSeconds = pace, maxPace = maxPace)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun KmPaceRow(km: Int, paceSeconds: Float, maxPace: Float) {
-    val paceStr = "%d:%02d".format((paceSeconds / 60).toInt(), (paceSeconds % 60).toInt())
-    val fillFraction = (paceSeconds / maxPace).coerceIn(0.15f, 1f)
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // KM badge
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "$km",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            AnimatedRouteMap(
+                points = r.routePoints,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
             )
         }
-        Spacer(Modifier.width(12.dp))
 
-        // Bar
+        // ── Back button (top-left overlay) ────────────────────────────────────
         Box(
             modifier = Modifier
-                .weight(1f)
-                .height(6.dp)
-                .clip(RoundedCornerShape(50)),
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(12.dp),
         ) {
-            Box(
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.90f)),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Brand_DeepGreen,
+                )
+            }
+        }
+
+        // ── Stats card (bottom sheet) ─────────────────────────────────────────
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 12.dp,
+        ) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(fillFraction)
-                    .height(6.dp)
-                    .background(MaterialTheme.colorScheme.primary),
-            )
-        }
+                    .navigationBarsPadding()
+                    .padding(horizontal = 28.dp, vertical = 24.dp),
+            ) {
+                // Date / time header
+                val dayDate = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
+                    .format(Date(r.startTime))
+                val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault())
+                    .format(Date(r.startTime))
 
-        Spacer(Modifier.width(12.dp))
-        Text(
-            text = "$paceStr /km",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+                Text(
+                    text = dayDate,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = Brand_DeepGreen,
+                )
+                Text(
+                    text = timeStr,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Light_MutedGray,
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                // Primary 3-metric row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    StatColumn(
+                        label = "Distance",
+                        value = "%.2f".format(r.distanceKm),
+                        unit = "km",
+                    )
+                    VerticalStatDivider()
+                    StatColumn(
+                        label = "Avg Pace",
+                        value = r.formattedPace().replace(" /km", ""),
+                        unit = "/km",
+                    )
+                    VerticalStatDivider()
+                    StatColumn(
+                        label = "Duration",
+                        value = r.formattedDuration(),
+                        unit = "",
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                // Calories full-width chip
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brand_DeepGreen.copy(alpha = 0.08f))
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(text = "🔥", style = MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Calories burned",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Light_MutedGray,
+                        )
+                        Text(
+                            text = "${r.caloriesBurned.toInt()} kcal",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp,
+                            ),
+                            color = Brand_DeepGreen,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
+// ── Full-screen map that animates a dot along the route ───────────────────────
 @Composable
-private fun SectionHeading(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onBackground,
-    )
-}
+private fun AnimatedRouteMap(points: List<LatLng>, modifier: Modifier = Modifier) {
+    var markerSource by remember { mutableStateOf<GeoJsonSource?>(null) }
 
-@Composable
-private fun DetailRouteMap(points: List<LatLng>, modifier: Modifier = Modifier) {
     MapLibreMapView(
         modifier = modifier,
         onMapReady = { map, style ->
-            val source = GeoJsonSource("route", buildRouteGeoJson(points))
-            style.addSource(source)
+            // Route glow
+            style.addSource(GeoJsonSource("detail-route", buildRouteGeoJson(points)))
             style.addLayer(
-                LineLayer("route-glow", "route").withProperties(
-                    PropertyFactory.lineColor(BRAND_GREEN),
-                    PropertyFactory.lineWidth(14f),
-                    PropertyFactory.lineOpacity(0.25f),
+                LineLayer("detail-glow", "detail-route").withProperties(
+                    PropertyFactory.lineColor(ROUTE_GLOW_COLOR),
+                    PropertyFactory.lineWidth(20f),
+                    PropertyFactory.lineOpacity(0.35f),
                     PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                     PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
                 )
             )
+            // Route solid line
             style.addLayer(
-                LineLayer("route-line", "route").withProperties(
-                    PropertyFactory.lineColor(BRAND_GREEN),
+                LineLayer("detail-line", "detail-route").withProperties(
+                    PropertyFactory.lineColor(ROUTE_COLOR),
                     PropertyFactory.lineWidth(5f),
                     PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                     PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
                 )
             )
+
+            // Start dot (static, white-filled)
+            style.addSource(GeoJsonSource("detail-start", buildPointGeoJson(points.first())))
+            style.addLayer(
+                CircleLayer("detail-start-layer", "detail-start").withProperties(
+                    PropertyFactory.circleColor("#FFFFFF"),
+                    PropertyFactory.circleRadius(7f),
+                    PropertyFactory.circleStrokeColor(ROUTE_COLOR),
+                    PropertyFactory.circleStrokeWidth(2.5f),
+                )
+            )
+
+            // Moving dot
+            val movingSrc = GeoJsonSource("detail-moving", buildPointGeoJson(points.first()))
+            style.addSource(movingSrc)
+            style.addLayer(
+                CircleLayer("detail-moving-layer", "detail-moving").withProperties(
+                    PropertyFactory.circleColor(ROUTE_COLOR),
+                    PropertyFactory.circleRadius(10f),
+                    PropertyFactory.circleStrokeColor("#FFFFFF"),
+                    PropertyFactory.circleStrokeWidth(3f),
+                )
+            )
+            markerSource = movingSrc
+
+            // Fit camera to full route
             val boundsBuilder = LatLngBounds.Builder()
             points.forEach { boundsBuilder.include(it.toMapLibre()) }
-            map.moveCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 64))
+            map.moveCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 80))
         }
+    )
+
+    // Animate the moving dot along the route (12-second playback, then hold at finish)
+    LaunchedEffect(markerSource) {
+        val src = markerSource ?: return@LaunchedEffect
+        val playbackMs = 12_000L
+        val stepMs = (playbackMs / points.size).coerceAtLeast(16L)
+        for (point in points) {
+            src.setGeoJson(buildPointGeoJson(point))
+            delay(stepMs)
+        }
+    }
+}
+
+// ── Stat column ───────────────────────────────────────────────────────────────
+@Composable
+private fun StatColumn(label: String, value: String, unit: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Light_MutedGray,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            color = Brand_DeepGreen,
+        )
+        if (unit.isNotEmpty()) {
+            Text(
+                text = unit,
+                style = MaterialTheme.typography.labelSmall,
+                color = Light_MutedGray,
+            )
+        }
+    }
+}
+
+@Composable
+private fun VerticalStatDivider() {
+    Box(
+        modifier = Modifier
+            .size(width = 1.dp, height = 52.dp)
+            .background(Brand_DeepGreen.copy(alpha = 0.12f)),
     )
 }

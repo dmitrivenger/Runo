@@ -8,7 +8,10 @@
     <style name="Theme.Runo.Splash" parent="Theme.SplashScreen">
         <item name="android:windowBackground">@color/runo_cream</item>
         <item name="windowSplashScreenBackground">@color/runo_cream</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_runo_icon</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_blank</item>
+        <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
         <item name="postSplashScreenTheme">@style/Theme.Runo</item>
     </style>
+
+    <style name="Theme.MyApplication" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

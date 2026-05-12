@@ -118,7 +118,7 @@ fun RunoBottomNav(
             Icon(
                 imageVector = Icons.Filled.DirectionsRun,
                 contentDescription = "Start Run",
-                tint = Brand_DeepGreen,
+                tint = Color(0xFF1A73E8),
                 modifier = Modifier.size(28.dp),
             )
         }

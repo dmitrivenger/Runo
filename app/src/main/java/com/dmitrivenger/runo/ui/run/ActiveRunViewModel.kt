@@ -41,14 +41,27 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var startTime = 0L
     private var timerJob = viewModelScope.launch { runTimer() }
+
+    // Voice announcement tracking (at configured interval: 500m, 1km, 2km, 5km)
+    private var lastAnnouncedMark = 0
+    private var voiceSegmentStartTime = 0L
+    private var voiceSegmentStartDist = 0f
+    private var voiceIntervalMeters = 1000
+
+    // Km-pace chart tracking (always at every 1 km)
     private var lastKmMark = 0
-    private var segmentStartTime = 0L
-    private var segmentStartDistance = 0f
+    private var kmSegmentStartTime = 0L
+    private var kmSegmentStartDist = 0f
+
     private var tts: TextToSpeech? = null
     private var voiceEnabled = true
 
     init {
-        viewModelScope.launch { voiceEnabled = app.userPreferences.userProfile.first().voiceFeedbackEnabled }
+        viewModelScope.launch {
+            val profile = app.userPreferences.userProfile.first()
+            voiceEnabled = profile.voiceFeedbackEnabled
+            voiceIntervalMeters = profile.voiceIntervalMeters
+        }
         setupTts()
         startService()
         observeLocation()
@@ -61,8 +74,10 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun startService() {
-        startTime = System.currentTimeMillis()
-        segmentStartTime = startTime
+        val now = System.currentTimeMillis()
+        startTime = now
+        voiceSegmentStartTime = now
+        kmSegmentStartTime = now
         app.startForegroundService(Intent(app, RunTrackingService::class.java).apply {
             action = RunTrackingService.ACTION_START
         })
@@ -76,17 +91,30 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
                 val newPoints = current.routePoints + latLng
                 val distance = if (newPoints.size >= 2) calculateTotalDistance(newPoints) else 0f
 
-                val distanceKm = (distance / 1000).toInt()
                 val kmPaces = current.kmPaces.toMutableMap()
+
+                // Voice interval announcement
+                val intervalMark = (distance / voiceIntervalMeters).toInt()
+                if (intervalMark > lastAnnouncedMark) {
+                    val segTime = (System.currentTimeMillis() - voiceSegmentStartTime) / 1000f
+                    val segDist = distance - voiceSegmentStartDist
+                    val segPace = if (segDist > 0) segTime / (segDist / 1000f) else 0f
+                    lastAnnouncedMark = intervalMark
+                    voiceSegmentStartTime = System.currentTimeMillis()
+                    voiceSegmentStartDist = distance
+                    announceDistance(intervalMark * voiceIntervalMeters / 1000f, segPace)
+                }
+
+                // Km pace chart recording
+                val distanceKm = (distance / 1000).toInt()
                 if (distanceKm > lastKmMark) {
-                    val segmentTime = (System.currentTimeMillis() - segmentStartTime) / 1000f
-                    val segmentDist = distance - segmentStartDistance
-                    val pace = if (segmentDist > 0) segmentTime / (segmentDist / 1000f) else 0f
-                    kmPaces[distanceKm] = pace
+                    val segTime = (System.currentTimeMillis() - kmSegmentStartTime) / 1000f
+                    val segDist = distance - kmSegmentStartDist
+                    val kmPace = if (segDist > 0) segTime / (segDist / 1000f) else 0f
+                    kmPaces[distanceKm] = kmPace
                     lastKmMark = distanceKm
-                    segmentStartTime = System.currentTimeMillis()
-                    segmentStartDistance = distance
-                    announceKm(distanceKm, pace)
+                    kmSegmentStartTime = System.currentTimeMillis()
+                    kmSegmentStartDist = distance
                 }
 
                 val elapsed = current.elapsedSeconds
@@ -114,7 +142,14 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
     fun togglePause() {
         val pausing = !_state.value.isPaused
         _state.value = _state.value.copy(isPaused = pausing)
-        if (!pausing) segmentStartTime = System.currentTimeMillis()
+        if (!pausing) {
+            val now = System.currentTimeMillis()
+            val dist = _state.value.distanceMeters
+            voiceSegmentStartTime = now
+            voiceSegmentStartDist = dist
+            kmSegmentStartTime = now
+            kmSegmentStartDist = dist
+        }
     }
 
     suspend fun finishRun(userProfile: UserProfile): Long {
@@ -145,11 +180,16 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
         })
     }
 
-    private fun announceKm(km: Int, paceSeconds: Float) {
+    private fun announceDistance(distKm: Float, paceSeconds: Float) {
         if (!voiceEnabled) return
         val m = (paceSeconds / 60).toInt()
         val s = (paceSeconds % 60).toInt()
-        tts?.speak("$km kilometre. Pace: $m minutes $s seconds per kilometre.",
+        val distLabel = when {
+            distKm < 1f -> "${(distKm * 1000).toInt()} metres"
+            distKm == distKm.toLong().toFloat() -> "${distKm.toLong()} kilometre${if (distKm.toLong() != 1L) "s" else ""}"
+            else -> "$distKm kilometres"
+        }
+        tts?.speak("$distLabel. Pace: $m minutes $s seconds per kilometre.",
             TextToSpeech.QUEUE_FLUSH, null, null)
     }
 

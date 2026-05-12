@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,11 +30,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.dmitrivenger.runo.R
 import kotlinx.coroutines.delay
 import java.util.Locale
 
@@ -55,6 +59,7 @@ fun CountdownScreen(onCountdownComplete: () -> Unit) {
     }
 
     val vibrator = remember { context.getSystemService(Vibrator::class.java) }
+    val letsRunText = stringResource(R.string.lets_run)
 
     LaunchedEffect(Unit) {
         repeat(TOTAL_COUNT) { i ->
@@ -63,7 +68,7 @@ fun CountdownScreen(onCountdownComplete: () -> Unit) {
             delay(1000)
         }
         showGo = true
-        tts?.speak("Let's run", TextToSpeech.QUEUE_FLUSH, null, null)
+        tts?.speak(letsRunText, TextToSpeech.QUEUE_FLUSH, null, null)
         vibrator?.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
         delay(800)
         onCountdownComplete()
@@ -97,6 +102,8 @@ fun CountdownScreen(onCountdownComplete: () -> Unit) {
 
     val ringColor = MaterialTheme.colorScheme.primary
     val ringTrack = MaterialTheme.colorScheme.surfaceVariant
+    val goLabel = stringResource(R.string.go_label)
+    val getReadyLabel = stringResource(R.string.get_ready)
 
     Box(
         modifier = Modifier
@@ -104,11 +111,9 @@ fun CountdownScreen(onCountdownComplete: () -> Unit) {
             .background(bgColor),
         contentAlignment = Alignment.Center,
     ) {
-        // Countdown arc ring
         if (!showGo) {
             Canvas(modifier = Modifier.size(180.dp)) {
                 val stroke = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
-                // Track
                 drawArc(
                     color = ringTrack,
                     startAngle = -90f,
@@ -116,7 +121,6 @@ fun CountdownScreen(onCountdownComplete: () -> Unit) {
                     useCenter = false,
                     style = stroke,
                 )
-                // Progress
                 drawArc(
                     color = ringColor,
                     startAngle = -90f,
@@ -127,24 +131,31 @@ fun CountdownScreen(onCountdownComplete: () -> Unit) {
             }
         }
 
-        // Number / GO
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.scale(if (showGo) goScale.value else popScale.value),
+        // Clip Box prevents scaled text from bleeding outside the ring boundary
+        Box(
+            modifier = Modifier
+                .size(168.dp)
+                .clip(CircleShape),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = if (showGo) "GO" else count.toString(),
-                style = MaterialTheme.typography.displayLarge,
-                color = if (showGo) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onBackground,
-            )
-            if (!showGo) {
-                Spacer(Modifier.height(4.dp))
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.scale(if (showGo) goScale.value else popScale.value),
+            ) {
                 Text(
-                    text = "Get ready",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = if (showGo) goLabel else count.toString(),
+                    style = MaterialTheme.typography.displayLarge,
+                    color = if (showGo) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onBackground,
                 )
+                if (!showGo) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = getReadyLabel,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

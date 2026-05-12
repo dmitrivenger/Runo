@@ -1,0 +1,79 @@
+<resources>
+    <string name="app_name">Runo</string>
+    <string name="channel_name">Трекинг бега</string>
+    <string name="channel_description">Уведомление об активной пробежке</string>
+    <string name="notification_title">Пробежка в процессе</string>
+
+    <string name="greeting_morning">Доброе утро,</string>
+    <string name="greeting_afternoon">Добрый день,</string>
+    <string name="greeting_evening">Добрый вечер,</string>
+
+    <string name="ready_to_run">Готовы бежать?</string>
+    <string name="start_adventure">Начните следующее приключение.</string>
+    <string name="recent_runs">Последние пробежки</string>
+    <string name="runs_placeholder">Ваши пробежки появятся здесь</string>
+    <string name="start_run_cd">Начать пробежку</string>
+    <string name="unit_km">км</string>
+    <string name="unit_per_km">/км</string>
+
+    <string name="get_ready">Приготовьтесь</string>
+    <string name="go_label">ВПЕРЁД</string>
+    <string name="lets_run">Побежали</string>
+
+    <string name="metric_distance">ДИСТАНЦИЯ</string>
+    <string name="metric_pace">ТЕМП</string>
+    <string name="metric_time">ВРЕМЯ</string>
+    <string name="paused_label">ПАУЗА</string>
+    <string name="resume_run">Продолжить</string>
+    <string name="end_run">Завершить</string>
+    <string name="keep_going">Продолжить</string>
+    <string name="end_run_title">Завершить пробежку?</string>
+    <string name="end_run_message">Тренировка будет сохранена и вы увидите результаты.</string>
+
+    <string name="settings">Настройки</string>
+    <string name="section_run_tracking">Трекинг бега</string>
+    <string name="distance_units">Единицы расстояния</string>
+    <string name="unit_kilometres">Километры</string>
+    <string name="unit_miles">Мили</string>
+    <string name="section_voice_coach">Голосовой тренер</string>
+    <string name="voice_feedback">Голосовые подсказки</string>
+    <string name="voice_feedback_desc">Объявления во время пробежки</string>
+    <string name="announce_every">Объявлять каждые</string>
+    <string name="interval_500m">500 м</string>
+    <string name="interval_1km">1 км</string>
+    <string name="interval_2km">2 км</string>
+    <string name="interval_5km">5 км</string>
+    <string name="section_appearance">Внешний вид</string>
+    <string name="dark_mode">Тёмная тема</string>
+    <string name="dark_mode_desc">Использовать тёмную тему</string>
+    <string name="section_language">Язык</string>
+    <string name="lang_english">English</string>
+    <string name="lang_russian">Русский</string>
+    <string name="version_label">Runo %s</string>
+
+    <string name="edit_profile">Редактировать профиль</string>
+    <string name="field_name">Имя</string>
+    <string name="field_age">Возраст</string>
+    <string name="field_height">Рост (см)</string>
+    <string name="field_weight">Вес (кг)</string>
+    <string name="save_changes">Сохранить</string>
+    <string name="section_app">Приложение</string>
+    <string name="settings_subtitle">Голос, внешний вид, единицы</string>
+    <string name="profile_saved">Профиль сохранён</string>
+    <string name="default_name">Бегун</string>
+
+    <string name="goal_stay_active">Оставаться активным</string>
+    <string name="goal_improve_pace">Улучшить темп</string>
+    <string name="goal_build_endurance">Развить выносливость</string>
+    <string name="goal_lose_weight">Похудеть</string>
+    <string name="select_goal">Выберите цель</string>
+    <string name="cancel">Отмена</string>
+
+    <string name="run_history">История пробежек</string>
+    <string name="no_runs_yet">Пробежек пока нет</string>
+    <string name="start_first_run">Начните первую пробежку, чтобы увидеть её здесь</string>
+
+    <string name="location_needed">Нужна геолокация</string>
+    <string name="location_rationale">Runo нужен доступ к геолокации для отслеживания пробежки.</string>
+    <string name="ok">ОК</string>
+</resources>

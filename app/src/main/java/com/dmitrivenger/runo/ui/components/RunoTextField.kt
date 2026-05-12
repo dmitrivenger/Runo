@@ -9,6 +9,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -23,7 +24,7 @@ fun RunoTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
         singleLine = singleLine,
         keyboardOptions = keyboardOptions,
         shape = RoundedCornerShape(12.dp),
@@ -34,8 +35,8 @@ fun RunoTextField(
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
             focusedLabelColor = MaterialTheme.colorScheme.primary,
             unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
         ),
     )
 }

@@ -9,7 +9,8 @@ data class UserProfile(
     val darkMode: Boolean = false,
     val voiceFeedbackEnabled: Boolean = true,
     val useMetricUnits: Boolean = true,
-    val voiceIntervalKm: Int = 1,
+    val voiceIntervalMeters: Int = 1000,
+    val language: String = "en",
 )
 
 enum class RunGoal(val label: String) {

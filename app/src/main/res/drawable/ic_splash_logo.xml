@@ -5,22 +5,22 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Deep-green rounded square — matches the Compose splash logo box -->
+    <!-- Deep-green rounded square — 20% larger fill -->
     <path
         android:fillColor="#0F3D2E"
-        android:pathData="M34,14 L74,14 Q94,14 94,34 L94,74 Q94,94 74,94 L34,94 Q14,94 14,74 L14,34 Q14,14 34,14 Z" />
+        android:pathData="M30,6 L78,6 Q102,6 102,30 L102,78 Q102,102 78,102 L30,102 Q6,102 6,78 L6,30 Q6,6 30,6 Z" />
 
-    <!-- R lettermark: staff + bowl (evenOdd punches the counter hole) -->
+    <!-- R lettermark scaled up 20% -->
     <path
         android:fillColor="#FFFFFF"
         android:fillType="evenOdd"
         android:pathData="
-            M27,22 H66 C83,22 83,50 66,50 H38 V86 H27 Z
-            M42,29 H62 C72,29 72,43 62,43 H42 Z" />
+            M22,16 H68 C89,16 89,49 68,49 H35 V92 H22 Z
+            M40,24 H64 C76,24 76,41 64,41 H40 Z" />
 
-    <!-- R leg (diagonal stroke) -->
+    <!-- R leg scaled up 20% -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M60,50 L83,86 H70 L47,50 Z" />
+        android:pathData="M61,49 L89,92 H73 L46,49 Z" />
 
 </vector>

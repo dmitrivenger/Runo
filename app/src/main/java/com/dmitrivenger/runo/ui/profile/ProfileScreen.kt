@@ -1,6 +1,7 @@
 package com.dmitrivenger.runo.ui.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,12 +22,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,9 +40,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.dmitrivenger.runo.R
 import com.dmitrivenger.runo.data.preferences.UserPreferences
 import com.dmitrivenger.runo.domain.model.RunGoal
 import com.dmitrivenger.runo.domain.model.UserProfile
@@ -47,11 +53,11 @@ import com.dmitrivenger.runo.ui.components.RunoPrimaryButton
 import com.dmitrivenger.runo.ui.components.RunoTextField
 import kotlinx.coroutines.launch
 
-private val GOAL_META = mapOf(
-    RunGoal.STAY_ACTIVE to Pair("🏃", "Stay Active"),
-    RunGoal.IMPROVE_PACE to Pair("⚡", "Improve Pace"),
-    RunGoal.BUILD_ENDURANCE to Pair("🏔", "Build Endurance"),
-    RunGoal.LOSE_WEIGHT to Pair("🔥", "Lose Weight"),
+private val GOAL_EMOJI = mapOf(
+    RunGoal.STAY_ACTIVE to "🏃",
+    RunGoal.IMPROVE_PACE to "⚡",
+    RunGoal.BUILD_ENDURANCE to "🏔",
+    RunGoal.LOSE_WEIGHT to "🔥",
 )
 
 @Composable
@@ -62,11 +68,26 @@ fun ProfileScreen(
     val profile by preferences.userProfile.collectAsState(initial = UserProfile())
     val scope = rememberCoroutineScope()
     val snackbarState = remember { SnackbarHostState() }
+    var showGoalDialog by remember { mutableStateOf(false) }
 
     var name by remember(profile.name) { mutableStateOf(profile.name) }
     var age by remember(profile.age) { mutableStateOf(if (profile.age > 0) profile.age.toString() else "") }
     var height by remember(profile.heightCm) { mutableStateOf(if (profile.heightCm > 0f) profile.heightCm.toString() else "") }
     var weight by remember(profile.weightKg) { mutableStateOf(if (profile.weightKg > 0f) profile.weightKg.toString() else "") }
+
+    val goalStayActive = stringResource(R.string.goal_stay_active)
+    val goalImprovePace = stringResource(R.string.goal_improve_pace)
+    val goalBuildEndurance = stringResource(R.string.goal_build_endurance)
+    val goalLoseWeight = stringResource(R.string.goal_lose_weight)
+    val goalLabels = remember(goalStayActive, goalImprovePace, goalBuildEndurance, goalLoseWeight) {
+        mapOf(
+            RunGoal.STAY_ACTIVE to goalStayActive,
+            RunGoal.IMPROVE_PACE to goalImprovePace,
+            RunGoal.BUILD_ENDURANCE to goalBuildEndurance,
+            RunGoal.LOSE_WEIGHT to goalLoseWeight,
+        )
+    }
+    val profileSavedMsg = stringResource(R.string.profile_saved)
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -75,17 +96,23 @@ fun ProfileScreen(
                 .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(bottom = 32.dp),
         ) {
-            item { ProfileHeader(profile = profile) }
+            item {
+                ProfileHeader(
+                    profile = profile,
+                    goalLabel = goalLabels[profile.goal],
+                    onGoalClick = { showGoalDialog = true },
+                )
+            }
 
             item {
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                    SectionLabel("Edit profile")
+                    SectionLabel(stringResource(R.string.edit_profile))
                     Spacer(Modifier.height(12.dp))
 
                     RunoTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = "Name",
+                        label = stringResource(R.string.field_name),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Words,
                             keyboardType = KeyboardType.Text,
@@ -100,14 +127,14 @@ fun ProfileScreen(
                         RunoTextField(
                             value = age,
                             onValueChange = { age = it },
-                            label = "Age",
+                            label = stringResource(R.string.field_age),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f),
                         )
                         RunoTextField(
                             value = height,
                             onValueChange = { height = it },
-                            label = "Height (cm)",
+                            label = stringResource(R.string.field_height),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.weight(1f),
                         )
@@ -117,13 +144,13 @@ fun ProfileScreen(
                     RunoTextField(
                         value = weight,
                         onValueChange = { weight = it },
-                        label = "Weight (kg)",
+                        label = stringResource(R.string.field_weight),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     )
                     Spacer(Modifier.height(20.dp))
 
                     RunoPrimaryButton(
-                        text = "Save changes",
+                        text = stringResource(R.string.save_changes),
                         onClick = {
                             scope.launch {
                                 preferences.saveProfile(
@@ -134,7 +161,7 @@ fun ProfileScreen(
                                         weightKg = weight.toFloatOrNull() ?: profile.weightKg,
                                     )
                                 )
-                                snackbarState.showSnackbar("Profile saved")
+                                snackbarState.showSnackbar(profileSavedMsg)
                             }
                         },
                         enabled = name.isNotBlank(),
@@ -146,7 +173,7 @@ fun ProfileScreen(
 
             item {
                 Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                    SectionLabel("App")
+                    SectionLabel(stringResource(R.string.section_app))
                     Spacer(Modifier.height(12.dp))
                     SettingsRow(
                         icon = {
@@ -165,8 +192,8 @@ fun ProfileScreen(
                                 )
                             }
                         },
-                        title = "Settings",
-                        subtitle = "Voice, appearance, units",
+                        title = stringResource(R.string.settings),
+                        subtitle = stringResource(R.string.settings_subtitle),
                         onClick = onOpenSettings,
                     )
                 }
@@ -178,11 +205,54 @@ fun ProfileScreen(
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
+
+    if (showGoalDialog) {
+        AlertDialog(
+            onDismissRequest = { showGoalDialog = false },
+            title = { Text(stringResource(R.string.select_goal)) },
+            text = {
+                Column {
+                    RunGoal.entries.forEach { goal ->
+                        val label = goalLabels[goal] ?: goal.label
+                        val emoji = GOAL_EMOJI[goal] ?: ""
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch { preferences.saveProfile(profile.copy(goal = goal)) }
+                                    showGoalDialog = false
+                                }
+                                .padding(vertical = 12.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = emoji, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (profile.goal == goal) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showGoalDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
 }
 
 @Composable
-private fun ProfileHeader(profile: UserProfile) {
-    val meta = GOAL_META[profile.goal]
+private fun ProfileHeader(
+    profile: UserProfile,
+    goalLabel: String?,
+    onGoalClick: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -208,26 +278,29 @@ private fun ProfileHeader(profile: UserProfile) {
         Spacer(Modifier.height(12.dp))
 
         Text(
-            text = if (profile.name.isNotBlank()) profile.name else "Runner",
+            text = profile.name.ifBlank { stringResource(R.string.default_name) },
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground,
         )
 
-        if (meta != null) {
+        if (goalLabel != null) {
+            val emoji = GOAL_EMOJI[profile.goal] ?: ""
             Spacer(Modifier.height(6.dp))
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .background(Color.Transparent)
+                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+                    .clickable(onClick = onGoalClick)
                     .padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = meta.first, style = MaterialTheme.typography.bodyMedium)
+                Text(text = emoji, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = meta.second,
+                    text = goalLabel,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }

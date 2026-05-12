@@ -15,13 +15,16 @@ import org.maplibre.android.maps.Style
 import org.maplibre.android.geometry.LatLng as MLLatLng
 
 // OpenFreeMap — free, no API key required.
-// Positron: clean off-white minimal style (matches Runo light design).
+// Bright:   natural, terrain-aware style matching Runo's earthy green aesthetic.
 // Liberty:  clean dark-toned style (matches Runo dark design).
 // Attribution is automatically displayed by MapLibre.
-private const val MAP_STYLE_LIGHT = "https://tiles.openfreemap.org/styles/positron"
+private const val MAP_STYLE_LIGHT = "https://tiles.openfreemap.org/styles/bright"
 private const val MAP_STYLE_DARK  = "https://tiles.openfreemap.org/styles/liberty"
 
 fun LatLng.toMapLibre() = MLLatLng(latitude, longitude)
+
+fun buildPointGeoJson(point: LatLng): String =
+    """{"type":"Feature","geometry":{"type":"Point","coordinates":[${point.longitude},${point.latitude}]},"properties":{}}"""
 
 fun buildRouteGeoJson(points: List<LatLng>): String {
     if (points.size < 2) return """{"type":"FeatureCollection","features":[]}"""
