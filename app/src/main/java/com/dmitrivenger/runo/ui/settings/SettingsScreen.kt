@@ -94,8 +94,8 @@ fun SettingsScreen(
                     Spacer(Modifier.height(10.dp))
                     ChipRow(
                         options = listOf(
-                            stringResource(R.string.unit_kilometres) to true,
-                            stringResource(R.string.unit_miles) to false,
+                            "Kilometres" to true,
+                            "Miles" to false,
                         ),
                         selected = profile.useMetricUnits,
                         onSelect = { save(profile.copy(useMetricUnits = it)) },
@@ -131,10 +131,10 @@ fun SettingsScreen(
                             Spacer(Modifier.height(10.dp))
                             ChipRow(
                                 options = listOf(
-                                    stringResource(R.string.interval_500m) to 500,
-                                    stringResource(R.string.interval_1km) to 1000,
-                                    stringResource(R.string.interval_2km) to 2000,
-                                    stringResource(R.string.interval_5km) to 5000,
+                                    "500 m" to 500,
+                                    "1 km" to 1000,
+                                    "2 km" to 2000,
+                                    "5 km" to 5000,
                                 ),
                                 selected = profile.voiceIntervalMeters,
                                 onSelect = { save(profile.copy(voiceIntervalMeters = it)) },
@@ -163,8 +163,8 @@ fun SettingsScreen(
                 SettingsSection(title = stringResource(R.string.section_language)) {
                     ChipRow(
                         options = listOf(
-                            stringResource(R.string.lang_english) to "en",
-                            stringResource(R.string.lang_russian) to "ru",
+                            "English" to "en",
+                            "Russian" to "ru",
                         ),
                         selected = profile.language,
                         onSelect = { lang -> switchLanguage(lang) },

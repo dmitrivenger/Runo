@@ -1,6 +1,7 @@
 package com.dmitrivenger.runo.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -12,6 +13,58 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.dmitrivenger.runo.domain.model.LatLng
+import com.dmitrivenger.runo.ui.theme.Light_BackgroundCream
+
+@Composable
+fun MiniRoutePreview(points: List<LatLng>, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.background(Light_BackgroundCream)) {
+        if (points.size < 2) return@Canvas
+
+        val pad = 8.dp.toPx()
+        val drawW = size.width - pad * 2
+        val drawH = size.height - pad * 2
+
+        val minLat = points.minOf { it.latitude }
+        val maxLat = points.maxOf { it.latitude }
+        val minLng = points.minOf { it.longitude }
+        val maxLng = points.maxOf { it.longitude }
+
+        val latRange = (maxLat - minLat).coerceAtLeast(0.0001)
+        val lngRange = (maxLng - minLng).coerceAtLeast(0.0001)
+
+        val scale = minOf(drawW / lngRange, drawH / latRange).toFloat()
+        val projW = (lngRange * scale).toFloat()
+        val projH = (latRange * scale).toFloat()
+        val offX = pad + (drawW - projW) / 2f
+        val offY = pad + (drawH - projH) / 2f
+
+        fun px(lng: Double) = offX + ((lng - minLng) * scale).toFloat()
+        fun py(lat: Double) = offY + projH - ((lat - minLat) * scale).toFloat()
+
+        val path = Path().apply {
+            moveTo(px(points[0].longitude), py(points[0].latitude))
+            for (i in 1 until points.size) {
+                lineTo(px(points[i].longitude), py(points[i].latitude))
+            }
+        }
+        drawPath(
+            path = path,
+            color = Color(0xFF0F3D2E),
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+        )
+        drawCircle(
+            color = Color(0xFF5C9A4A),
+            radius = 3.5.dp.toPx(),
+            center = Offset(px(points.first().longitude), py(points.first().latitude)),
+        )
+        drawCircle(
+            color = Color(0xFFC0392B),
+            radius = 3.5.dp.toPx(),
+            center = Offset(px(points.last().longitude), py(points.last().latitude)),
+        )
+    }
+}
 
 @Composable
 fun PaceChart(

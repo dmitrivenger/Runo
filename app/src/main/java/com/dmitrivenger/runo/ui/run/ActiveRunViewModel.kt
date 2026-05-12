@@ -27,6 +27,7 @@ data class ActiveRunState(
     val elapsedSeconds: Long = 0L,
     val distanceMeters: Float = 0f,
     val currentPaceSecondsPerKm: Float = 0f,
+    val caloriesBurned: Float = 0f,
     val routePoints: List<LatLng> = emptyList(),
     val kmPaces: Map<Int, Float> = emptyMap(),
     val isPaused: Boolean = false,
@@ -53,6 +54,13 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
     private var kmSegmentStartTime = 0L
     private var kmSegmentStartDist = 0f
 
+    // Real-time pace tracking (rolling window)
+    private var lastLocationTimeMs = 0L
+    private var lastLocationDist = 0f
+    private val recentPaces = ArrayDeque<Float>()
+
+    private var userWeightKg = 70f
+
     private var tts: TextToSpeech? = null
     private var voiceEnabled = true
 
@@ -61,6 +69,7 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
             val profile = app.userPreferences.userProfile.first()
             voiceEnabled = profile.voiceFeedbackEnabled
             voiceIntervalMeters = profile.voiceIntervalMeters
+            userWeightKg = if (profile.weightKg > 0) profile.weightKg else 70f
         }
         setupTts()
         startService()
@@ -90,17 +99,18 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
                 val current = _state.value
                 val newPoints = current.routePoints + latLng
                 val distance = if (newPoints.size >= 2) calculateTotalDistance(newPoints) else 0f
+                val now = System.currentTimeMillis()
 
                 val kmPaces = current.kmPaces.toMutableMap()
 
                 // Voice interval announcement
                 val intervalMark = (distance / voiceIntervalMeters).toInt()
                 if (intervalMark > lastAnnouncedMark) {
-                    val segTime = (System.currentTimeMillis() - voiceSegmentStartTime) / 1000f
+                    val segTime = (now - voiceSegmentStartTime) / 1000f
                     val segDist = distance - voiceSegmentStartDist
                     val segPace = if (segDist > 0) segTime / (segDist / 1000f) else 0f
                     lastAnnouncedMark = intervalMark
-                    voiceSegmentStartTime = System.currentTimeMillis()
+                    voiceSegmentStartTime = now
                     voiceSegmentStartDist = distance
                     announceDistance(intervalMark * voiceIntervalMeters / 1000f, segPace)
                 }
@@ -108,22 +118,38 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
                 // Km pace chart recording
                 val distanceKm = (distance / 1000).toInt()
                 if (distanceKm > lastKmMark) {
-                    val segTime = (System.currentTimeMillis() - kmSegmentStartTime) / 1000f
+                    val segTime = (now - kmSegmentStartTime) / 1000f
                     val segDist = distance - kmSegmentStartDist
                     val kmPace = if (segDist > 0) segTime / (segDist / 1000f) else 0f
                     kmPaces[distanceKm] = kmPace
                     lastKmMark = distanceKm
-                    kmSegmentStartTime = System.currentTimeMillis()
+                    kmSegmentStartTime = now
                     kmSegmentStartDist = distance
                 }
 
+                // Rolling instantaneous pace (updated only when meaningful movement detected)
+                val distDelta = distance - lastLocationDist
+                if (distDelta >= 5f && lastLocationTimeMs > 0L) {
+                    val timeDelta = (now - lastLocationTimeMs) / 1000f
+                    val instantPace = (timeDelta / (distDelta / 1000f)).coerceIn(60f, 1800f)
+                    recentPaces.addLast(instantPace)
+                    if (recentPaces.size > 5) recentPaces.removeFirst()
+                }
+                if (distDelta >= 5f || lastLocationTimeMs == 0L) {
+                    lastLocationTimeMs = now
+                    lastLocationDist = distance
+                }
+                val smoothedPace = if (recentPaces.isNotEmpty())
+                    recentPaces.average().toFloat() else current.currentPaceSecondsPerKm
+
                 val elapsed = current.elapsedSeconds
-                val pace = if (distance > 0 && elapsed > 0) elapsed.toFloat() / (distance / 1000f) else 0f
+                val liveCalories = calculateCalories(userWeightKg, elapsed, distance)
 
                 _state.value = current.copy(
                     routePoints = newPoints,
                     distanceMeters = distance,
-                    currentPaceSecondsPerKm = pace,
+                    currentPaceSecondsPerKm = smoothedPace,
+                    caloriesBurned = liveCalories,
                     kmPaces = kmPaces,
                 )
             }
@@ -217,11 +243,19 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
     private fun Double.sq() = this * this
 
     private fun calculateCalories(weightKg: Float, durationSeconds: Long, distanceMeters: Float): Float {
+        if (durationSeconds <= 0 || distanceMeters <= 0) return 0f
         val weight = if (weightKg > 0) weightKg else 70f
         val durationHours = durationSeconds / 3600.0
-        val speedKmh = if (durationHours > 0) (distanceMeters / 1000.0) / durationHours else 8.0
+        val speedKmh = (distanceMeters / 1000.0) / durationHours
         val met = when {
-            speedKmh < 8 -> 8.0; speedKmh < 10 -> 10.0; speedKmh < 12 -> 11.5; else -> 13.0
+            speedKmh < 3.0  -> 2.5
+            speedKmh < 5.0  -> 3.5
+            speedKmh < 6.5  -> 5.0
+            speedKmh < 8.0  -> 7.0
+            speedKmh < 10.0 -> 8.5
+            speedKmh < 12.0 -> 10.0
+            speedKmh < 14.0 -> 11.5
+            else             -> 13.0
         }
         return (met * weight * durationHours).toFloat()
     }

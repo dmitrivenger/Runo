@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -28,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dmitrivenger.runo.R
 import com.dmitrivenger.runo.domain.model.Run
+import com.dmitrivenger.runo.ui.components.MiniRoutePreview
 import com.dmitrivenger.runo.ui.theme.Brand_DeepGreen
 import com.dmitrivenger.runo.ui.theme.Light_MutedGray
 import java.text.SimpleDateFormat
@@ -101,6 +104,7 @@ private fun HistoryRunCard(run: Run, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .height(96.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
@@ -109,8 +113,8 @@ private fun HistoryRunCard(run: Run, onClick: () -> Unit) {
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -142,6 +146,15 @@ private fun HistoryRunCard(run: Run, onClick: () -> Unit) {
                     color = Light_MutedGray,
                 )
             }
+            Spacer(Modifier.width(12.dp))
+            MiniRoutePreview(
+                points = run.routePoints,
+                modifier = Modifier
+                    .width(80.dp)
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+            )
         }
     }
 }
+

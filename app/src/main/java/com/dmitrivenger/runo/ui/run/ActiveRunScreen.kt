@@ -30,11 +30,11 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -164,42 +164,51 @@ fun ActiveRunScreen(
                     .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
             )
 
-            // Metrics row
-            Row(
+            // 2×2 metric grid
+            val speedKmh = if (state.currentPaceSecondsPerKm > 0f) 3600f / state.currentPaceSecondsPerKm else 0f
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    RunMetric(
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    RunMetricCard(
                         label = "DISTANCE",
                         value = "%.2f".format(state.distanceMeters / 1000f),
                         unit = "km",
+                        modifier = Modifier.weight(1f),
+                    )
+                    RunMetricCard(
+                        label = "SPEED",
+                        value = if (speedKmh > 0f) "%.1f".format(speedKmh) else "--.-",
+                        unit = "km/h",
+                        modifier = Modifier.weight(1f),
                     )
                 }
-                VerticalMetricDivider()
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    RunMetric(
-                        label = "PACE",
-                        value = formatPace(state.currentPaceSecondsPerKm),
-                        unit = "/km",
-                    )
-                }
-                VerticalMetricDivider()
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    RunMetric(
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    RunMetricCard(
                         label = "TIME",
                         value = formatTime(state.elapsedSeconds),
                         unit = "",
+                        modifier = Modifier.weight(1f),
+                    )
+                    RunMetricCard(
+                        label = "CALORIES",
+                        value = if (state.caloriesBurned > 0f) "${state.caloriesBurned.toInt()}" else "--",
+                        unit = "kcal",
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-            )
+            Spacer(Modifier.height(16.dp))
 
             // Controls — animate between running and paused layouts
             AnimatedContent(
@@ -384,36 +393,37 @@ private fun setupRouteLayer(
 }
 
 @Composable
-private fun RunMetric(label: String, value: String, unit: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        if (unit.isNotEmpty()) {
+private fun RunMetricCard(label: String, value: String, unit: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.background,
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text(
-                text = unit,
+                text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (unit.isNotEmpty()) {
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
-}
-
-@Composable
-private fun VerticalMetricDivider() {
-    Box(
-        modifier = Modifier
-            .size(width = 1.dp, height = 48.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-    )
 }
 
 private fun formatPace(paceSeconds: Float): String {

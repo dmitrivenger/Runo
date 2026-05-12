@@ -53,9 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -66,10 +64,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import com.dmitrivenger.runo.R
 import com.dmitrivenger.runo.domain.model.Run
+import com.dmitrivenger.runo.ui.components.MiniRoutePreview
 import com.dmitrivenger.runo.ui.theme.Brand_DeepGreen
 import com.dmitrivenger.runo.ui.theme.Brand_LeafGreen
 import com.dmitrivenger.runo.ui.theme.Brand_White
-import com.dmitrivenger.runo.ui.theme.Light_BackgroundCream
 import com.dmitrivenger.runo.ui.theme.Light_MutedGray
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -252,13 +250,6 @@ private fun HeroCard(onTap: () -> Unit) {
 @Composable
 private fun RunCard(run: Run, onClick: () -> Unit) {
     val dateStr = SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(run.startTime))
-    val sparkPoints = if (run.kmPaces.isNotEmpty()) {
-        val values = run.kmPaces.entries.sortedBy { it.key }.map { it.value }
-        val max = values.max().coerceAtLeast(1f)
-        values.map { 1f - (it / max) }
-    } else {
-        listOf(0.5f, 0.6f, 0.5f, 0.7f, 0.55f)
-    }
 
     Surface(
         modifier = Modifier
@@ -301,50 +292,14 @@ private fun RunCard(run: Run, onClick: () -> Unit) {
 
             Spacer(Modifier.width(16.dp))
 
-            PaceSparkline(
-                points = sparkPoints,
+            MiniRoutePreview(
+                points = run.routePoints,
                 modifier = Modifier
                     .width(96.dp)
                     .height(56.dp)
                     .clip(RoundedCornerShape(8.dp)),
             )
         }
-    }
-}
-
-// ── Pace sparkline (line graph) ───────────────────────────────────────────────
-@Composable
-private fun PaceSparkline(points: List<Float>, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.background(Light_BackgroundCream)) {
-        if (points.size < 2) return@Canvas
-
-        val padH = 8.dp.toPx()
-        val padV = 8.dp.toPx()
-        val drawW = size.width - padH * 2
-        val drawH = size.height - padV * 2
-
-        val xs = points.indices.map { i -> padH + i.toFloat() / points.lastIndex * drawW }
-        val ys = points.map { p -> padV + (1f - p) * drawH }
-
-        val linePath = Path().apply {
-            moveTo(xs[0], ys[0])
-            for (i in 1 until points.size) {
-                val cpX = (xs[i - 1] + xs[i]) / 2f
-                cubicTo(cpX, ys[i - 1], cpX, ys[i], xs[i], ys[i])
-            }
-        }
-        val fillPath = Path().apply {
-            addPath(linePath)
-            lineTo(xs.last(), size.height)
-            lineTo(xs.first(), size.height)
-            close()
-        }
-        drawPath(fillPath, color = Color(0xFF5C9A4A).copy(alpha = 0.15f))
-        drawPath(
-            path = linePath,
-            color = Color(0xFF5C9A4A),
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
-        )
     }
 }
 
@@ -408,11 +363,7 @@ private fun PulsingPlayButton(onClick: () -> Unit) {
                 .size(64.dp)
                 .scale(pressScale)
                 .clip(CircleShape)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color.White, Light_BackgroundCream),
-                    ),
-                )
+                .background(Color.White)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -424,7 +375,7 @@ private fun PulsingPlayButton(onClick: () -> Unit) {
                 imageVector = Icons.Filled.PlayArrow,
                 contentDescription = stringResource(R.string.start_run_cd),
                 tint = Brand_DeepGreen,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(36.dp),
             )
         }
     }
