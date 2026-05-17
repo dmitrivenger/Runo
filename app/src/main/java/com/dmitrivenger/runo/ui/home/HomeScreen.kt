@@ -34,13 +34,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -74,16 +79,19 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeContent(
     viewModel: HomeViewModel,
     onStartRun: () -> Unit,
     onRunClick: (Long) -> Unit,
+    onDeleteRun: (Long) -> Unit,
 ) {
     val context = LocalContext.current
     val profile by viewModel.profile.collectAsState()
     val runs by viewModel.runs.collectAsState()
     var showRationale by remember { mutableStateOf(false) }
+    var pendingDeleteId by remember { mutableStateOf<Long?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -169,7 +177,37 @@ fun HomeContent(
                 }
             } else {
                 items(runs, key = { it.id }) { run ->
-                    RunCard(run = run, onClick = { onRunClick(run.id) })
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                pendingDeleteId = run.id
+                            }
+                            false // always snap back; deletion happens via dialog
+                        }
+                    )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(bottom = 12.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(Color(0xFFEF4444)),
+                                contentAlignment = Alignment.CenterEnd,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.White,
+                                    modifier = Modifier.padding(end = 24.dp),
+                                )
+                            }
+                        },
+                    ) {
+                        RunCard(run = run, onClick = { onRunClick(run.id) })
+                    }
                     Spacer(Modifier.height(12.dp))
                 }
             }
@@ -183,6 +221,25 @@ fun HomeContent(
             text = { Text(stringResource(R.string.location_rationale)) },
             confirmButton = {
                 TextButton(onClick = { showRationale = false }) { Text(stringResource(R.string.ok)) }
+            },
+        )
+    }
+
+    if (pendingDeleteId != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text(stringResource(R.string.delete_run_title)) },
+            text = { Text(stringResource(R.string.delete_run_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingDeleteId?.let { onDeleteRun(it) }
+                        pendingDeleteId = null
+                    },
+                ) { Text(stringResource(R.string.delete), color = Color(0xFFEF4444)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -345,7 +402,7 @@ private fun PulsingPlayButton(onClick: () -> Unit) {
                 color = Brand_LeafGreen.copy(alpha = 0.4f * (1f - pulseProgress)),
                 radius = baseRadius + pulseProgress * expansionRadius,
                 center = center,
-                style = Stroke(width = 2.dp.toPx()),
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
             )
         }
         Box(

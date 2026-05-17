@@ -19,4 +19,7 @@ interface RunDao {
 
     @Query("SELECT * FROM runs WHERE startTime >= :from ORDER BY startTime DESC")
     fun getRunsSince(from: Long): Flow<List<RunEntity>>
+
+    @Query("DELETE FROM runs WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

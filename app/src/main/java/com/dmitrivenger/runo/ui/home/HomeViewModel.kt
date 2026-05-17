@@ -9,9 +9,10 @@ import com.dmitrivenger.runo.domain.model.UserProfile
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class HomeViewModel(
-    repository: RunRepository,
+    private val repository: RunRepository,
     preferences: UserPreferences,
 ) : ViewModel() {
 
@@ -22,4 +23,8 @@ class HomeViewModel(
     val runs: StateFlow<List<Run>> = repository.allRuns.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
     )
+
+    fun deleteRun(id: Long) {
+        viewModelScope.launch { repository.deleteRun(id) }
+    }
 }

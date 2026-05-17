@@ -76,4 +76,8 @@
     <string name="location_needed">Нужна геолокация</string>
     <string name="location_rationale">Runo нужен доступ к геолокации для отслеживания пробежки.</string>
     <string name="ok">ОК</string>
+
+    <string name="delete_run_title">Удалить сессию?</string>
+    <string name="delete_run_message">Вы уверены, что хотите удалить эту сессию? Отменить действие нельзя.</string>
+    <string name="delete">Удалить</string>
 </resources>

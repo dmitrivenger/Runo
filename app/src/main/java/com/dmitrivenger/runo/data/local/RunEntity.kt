@@ -1,5 +1,6 @@
 package com.dmitrivenger.runo.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.dmitrivenger.runo.domain.model.LatLng
@@ -18,6 +19,7 @@ data class RunEntity(
     val caloriesBurned: Float,
     val routePointsJson: String,
     val kmPacesJson: String,
+    @ColumnInfo(defaultValue = "{}") val paceAnalyticsJson: String = "{}",
 ) {
     fun toDomain(): Run {
         val gson = Gson()
@@ -27,6 +29,7 @@ data class RunEntity(
 
         val paceType = object : TypeToken<Map<Int, Float>>() {}.type
         val kmPaces: Map<Int, Float> = gson.fromJson(kmPacesJson, paceType) ?: emptyMap()
+        val paceAnalytics: Map<Int, Float> = gson.fromJson(paceAnalyticsJson, paceType) ?: emptyMap()
 
         return Run(
             id = id,
@@ -38,6 +41,7 @@ data class RunEntity(
             caloriesBurned = caloriesBurned,
             routePoints = points,
             kmPaces = kmPaces,
+            paceAnalytics = paceAnalytics,
         )
     }
 
@@ -55,6 +59,7 @@ data class RunEntity(
                 caloriesBurned = run.caloriesBurned,
                 routePointsJson = gson.toJson(rawPoints),
                 kmPacesJson = gson.toJson(run.kmPaces),
+                paceAnalyticsJson = gson.toJson(run.paceAnalytics),
             )
         }
     }

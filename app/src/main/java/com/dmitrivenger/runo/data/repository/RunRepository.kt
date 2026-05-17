@@ -16,4 +16,6 @@ class RunRepository(private val dao: RunDao) {
     suspend fun saveRun(run: Run): Long = dao.insert(RunEntity.fromDomain(run))
 
     suspend fun getRunById(id: Long): Run? = dao.getRunById(id)?.toDomain()
+
+    suspend fun deleteRun(id: Long) = dao.deleteById(id)
 }

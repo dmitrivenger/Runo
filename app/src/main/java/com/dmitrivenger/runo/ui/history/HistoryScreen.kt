@@ -16,10 +16,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,11 +50,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
     runs: List<Run>,
     onRunClick: (Long) -> Unit,
+    onDeleteRun: (Long) -> Unit,
 ) {
+    var pendingDeleteId by remember { mutableStateOf<Long?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -86,11 +103,60 @@ fun HistoryScreen(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
             ) {
                 items(runs, key = { it.id }) { run ->
-                    HistoryRunCard(run = run, onClick = { onRunClick(run.id) })
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                pendingDeleteId = run.id
+                            }
+                            false // always snap back; deletion happens via dialog
+                        }
+                    )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(bottom = 12.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(Color(0xFFEF4444)),
+                                contentAlignment = Alignment.CenterEnd,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.White,
+                                    modifier = Modifier.padding(end = 24.dp),
+                                )
+                            }
+                        },
+                    ) {
+                        HistoryRunCard(run = run, onClick = { onRunClick(run.id) })
+                    }
                     Spacer(Modifier.height(12.dp))
                 }
             }
         }
+    }
+
+    if (pendingDeleteId != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text(stringResource(R.string.delete_run_title)) },
+            text = { Text(stringResource(R.string.delete_run_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingDeleteId?.let { onDeleteRun(it) }
+                        pendingDeleteId = null
+                    },
+                ) { Text(stringResource(R.string.delete), color = Color(0xFFEF4444)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
     }
 }
 
@@ -157,4 +223,3 @@ private fun HistoryRunCard(run: Run, onClick: () -> Unit) {
         }
     }
 }
-

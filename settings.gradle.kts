@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Runo"
 include(":app")
+include(":app")

@@ -103,6 +103,7 @@ fun MainShell(
                     viewModel = homeViewModel,
                     onStartRun = onStartRun,
                     onRunClick = onRunClick,
+                    onDeleteRun = { homeViewModel.deleteRun(it) },
                 )
                 BottomNavTab.STATS -> AnalyticsScreen(
                     viewModel = analyticsViewModel,
@@ -111,6 +112,7 @@ fun MainShell(
                 BottomNavTab.ACTIVITY -> HistoryScreen(
                     runs = runs,
                     onRunClick = onRunClick,
+                    onDeleteRun = { homeViewModel.deleteRun(it) },
                 )
                 BottomNavTab.PROFILE -> ProfileScreen(
                     preferences = app.userPreferences,

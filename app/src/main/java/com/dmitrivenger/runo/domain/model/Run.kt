@@ -10,6 +10,7 @@ data class Run(
     val caloriesBurned: Float = 0f,
     val routePoints: List<LatLng> = emptyList(),
     val kmPaces: Map<Int, Float> = emptyMap(),
+    val paceAnalytics: Map<Int, Float> = emptyMap(), // key = 100m mark, value = pace sec/km for that segment
 ) {
     val distanceKm: Float get() = distanceMeters / 1000f
 

@@ -30,6 +30,7 @@ data class ActiveRunState(
     val caloriesBurned: Float = 0f,
     val routePoints: List<LatLng> = emptyList(),
     val kmPaces: Map<Int, Float> = emptyMap(),
+    val paceAnalytics: Map<Int, Float> = emptyMap(),
     val isPaused: Boolean = false,
 )
 
@@ -43,20 +44,27 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
     private var startTime = 0L
     private var timerJob = viewModelScope.launch { runTimer() }
 
-    // Voice announcement tracking (at configured interval: 500m, 1km, 2km, 5km)
+    // Voice announcement tracking
     private var lastAnnouncedMark = 0
     private var voiceSegmentStartTime = 0L
     private var voiceSegmentStartDist = 0f
     private var voiceIntervalMeters = 1000
 
-    // Km-pace chart tracking (always at every 1 km)
+    // Km-pace chart tracking (every 1 km)
     private var lastKmMark = 0
     private var kmSegmentStartTime = 0L
     private var kmSegmentStartDist = 0f
 
-    // Real-time pace tracking (rolling window)
-    private var lastLocationTimeMs = 0L
-    private var lastLocationDist = 0f
+    // 100m pace analytics tracking
+    private var last100mMark = 0
+    private var mark100mStartTime = 0L
+    private var mark100mStartDist = 0f
+
+    // Incremental distance — O(1) per update instead of O(n)
+    private var lastTrustedLatLng: LatLng? = null
+    private var cumulativeDistanceM = 0f
+
+    // Real-time pace: rolling average of GPS-speed-derived instant pace
     private val recentPaces = ArrayDeque<Float>()
 
     private var userWeightKg = 70f
@@ -77,9 +85,17 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun setupTts() {
-        tts = TextToSpeech(app) { status ->
-            if (status == TextToSpeech.SUCCESS) tts?.language = Locale.getDefault()
-        }
+        try {
+            tts = TextToSpeech(app) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    // Always announce in English regardless of app language
+                    val result = tts?.setLanguage(Locale.ENGLISH)
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        tts?.language = Locale.getDefault()
+                    }
+                }
+            }
+        } catch (_: Exception) { /* TTS unavailable on this device */ }
     }
 
     private fun startService() {
@@ -87,6 +103,7 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
         startTime = now
         voiceSegmentStartTime = now
         kmSegmentStartTime = now
+        mark100mStartTime = now
         app.startForegroundService(Intent(app, RunTrackingService::class.java).apply {
             action = RunTrackingService.ACTION_START
         })
@@ -94,28 +111,63 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun observeLocation() {
         viewModelScope.launch {
-            RunTrackingService.locationFlow.collectLatest { latLng ->
-                if (latLng == null || _state.value.isPaused) return@collectLatest
-                val current = _state.value
-                val newPoints = current.routePoints + latLng
-                val distance = if (newPoints.size >= 2) calculateTotalDistance(newPoints) else 0f
+            RunTrackingService.locationFlow.collectLatest { update ->
+                if (update == null || _state.value.isPaused) return@collectLatest
+
+                val latLng = update.latLng
+                val speedMps = update.speedMps
+                val accuracyM = update.accuracyM
                 val now = System.currentTimeMillis()
+                val current = _state.value
 
-                val kmPaces = current.kmPaces.toMutableMap()
+                // Always add to route for visual display
+                val newPoints = current.routePoints + latLng
 
-                // Voice interval announcement
-                val intervalMark = (distance / voiceIntervalMeters).toInt()
-                if (intervalMark > lastAnnouncedMark) {
-                    val segTime = (now - voiceSegmentStartTime) / 1000f
-                    val segDist = distance - voiceSegmentStartDist
-                    val segPace = if (segDist > 0) segTime / (segDist / 1000f) else 0f
-                    lastAnnouncedMark = intervalMark
-                    voiceSegmentStartTime = now
-                    voiceSegmentStartDist = distance
-                    announceDistance(intervalMark * voiceIntervalMeters / 1000f, segPace)
+                // Only count distance for accurate GPS fixes (< 25m accuracy radius)
+                val isTrusted = accuracyM < 25f
+                if (isTrusted) {
+                    val prev = lastTrustedLatLng
+                    if (prev != null) {
+                        val delta = haversineMeters(prev, latLng)
+                        // Reject movement smaller than GPS noise floor (30% of accuracy radius)
+                        val noiseFloor = maxOf(1f, accuracyM * 0.3f)
+                        if (delta > noiseFloor) {
+                            cumulativeDistanceM += delta
+                        }
+                    }
+                    lastTrustedLatLng = latLng
+                }
+                val distance = cumulativeDistanceM
+
+                // Pace from GPS Doppler speed — far more accurate at walking pace than
+                // distance-divided-by-time (which is dominated by GPS jitter at low speeds)
+                if (isTrusted && speedMps >= 0f) {
+                    val instantPace = if (speedMps > 0.15f) {
+                        (1000f / speedMps).coerceIn(60f, 1800f)
+                    } else {
+                        1800f // near-stationary
+                    }
+                    recentPaces.addLast(instantPace)
+                    if (recentPaces.size > 8) recentPaces.removeFirst()
+                }
+                val smoothedPace = if (recentPaces.isNotEmpty())
+                    recentPaces.average().toFloat() else current.currentPaceSecondsPerKm
+
+                // 100m pace analytics
+                val paceAnalytics = current.paceAnalytics.toMutableMap()
+                val mark100 = (distance / 100).toInt()
+                if (mark100 > last100mMark) {
+                    val segTime = (now - mark100mStartTime) / 1000f
+                    val segDist = distance - mark100mStartDist
+                    val pace100 = if (segDist > 0) segTime / (segDist / 1000f) else 0f
+                    paceAnalytics[mark100] = pace100
+                    last100mMark = mark100
+                    mark100mStartTime = now
+                    mark100mStartDist = distance
                 }
 
-                // Km pace chart recording
+                // Km-pace chart recording
+                val kmPaces = current.kmPaces.toMutableMap()
                 val distanceKm = (distance / 1000).toInt()
                 if (distanceKm > lastKmMark) {
                     val segTime = (now - kmSegmentStartTime) / 1000f
@@ -127,23 +179,21 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
                     kmSegmentStartDist = distance
                 }
 
-                // Rolling instantaneous pace (updated only when meaningful movement detected)
-                val distDelta = distance - lastLocationDist
-                if (distDelta >= 5f && lastLocationTimeMs > 0L) {
-                    val timeDelta = (now - lastLocationTimeMs) / 1000f
-                    val instantPace = (timeDelta / (distDelta / 1000f)).coerceIn(60f, 1800f)
-                    recentPaces.addLast(instantPace)
-                    if (recentPaces.size > 5) recentPaces.removeFirst()
+                // Voice interval announcement
+                if (voiceIntervalMeters > 0) {
+                    val intervalMark = (distance / voiceIntervalMeters).toInt()
+                    if (intervalMark > lastAnnouncedMark) {
+                        val segTime = (now - voiceSegmentStartTime) / 1000f
+                        val segDist = distance - voiceSegmentStartDist
+                        val segPace = if (segDist > 0) segTime / (segDist / 1000f) else 0f
+                        lastAnnouncedMark = intervalMark
+                        voiceSegmentStartTime = now
+                        voiceSegmentStartDist = distance
+                        announceDistance(intervalMark * voiceIntervalMeters / 1000f, segPace)
+                    }
                 }
-                if (distDelta >= 5f || lastLocationTimeMs == 0L) {
-                    lastLocationTimeMs = now
-                    lastLocationDist = distance
-                }
-                val smoothedPace = if (recentPaces.isNotEmpty())
-                    recentPaces.average().toFloat() else current.currentPaceSecondsPerKm
 
-                val elapsed = current.elapsedSeconds
-                val liveCalories = calculateCalories(userWeightKg, elapsed, distance)
+                val liveCalories = calculateCalories(userWeightKg, current.elapsedSeconds, distance)
 
                 _state.value = current.copy(
                     routePoints = newPoints,
@@ -151,6 +201,7 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
                     currentPaceSecondsPerKm = smoothedPace,
                     caloriesBurned = liveCalories,
                     kmPaces = kmPaces,
+                    paceAnalytics = paceAnalytics,
                 )
             }
         }
@@ -175,6 +226,10 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
             voiceSegmentStartDist = dist
             kmSegmentStartTime = now
             kmSegmentStartDist = dist
+            mark100mStartTime = now
+            mark100mStartDist = dist
+            // Reset trusted anchor so we don't count pause gap as movement
+            lastTrustedLatLng = null
         }
     }
 
@@ -194,13 +249,14 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
                 caloriesBurned = calories,
                 routePoints = current.routePoints,
                 kmPaces = current.kmPaces,
+                paceAnalytics = current.paceAnalytics,
             )
         )
     }
 
     private fun stopService() {
         timerJob.cancel()
-        tts?.shutdown()
+        try { tts?.shutdown() } catch (_: Exception) {}
         app.startService(Intent(app, RunTrackingService::class.java).apply {
             action = RunTrackingService.ACTION_STOP
         })
@@ -215,19 +271,17 @@ class ActiveRunViewModel(application: Application) : AndroidViewModel(applicatio
             distKm == distKm.toLong().toFloat() -> "${distKm.toLong()} kilometre${if (distKm.toLong() != 1L) "s" else ""}"
             else -> "$distKm kilometres"
         }
-        tts?.speak("$distLabel. Pace: $m minutes $s seconds per kilometre.",
-            TextToSpeech.QUEUE_FLUSH, null, null)
+        try {
+            tts?.speak(
+                "$distLabel. Pace: $m minutes $s seconds per kilometre.",
+                TextToSpeech.QUEUE_FLUSH, null, null,
+            )
+        } catch (_: Exception) {}
     }
 
     override fun onCleared() {
         super.onCleared()
         stopService()
-    }
-
-    private fun calculateTotalDistance(points: List<LatLng>): Float {
-        var total = 0f
-        for (i in 1 until points.size) total += haversineMeters(points[i - 1], points[i])
-        return total
     }
 
     private fun haversineMeters(a: LatLng, b: LatLng): Float {
